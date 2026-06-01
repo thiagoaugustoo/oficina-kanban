@@ -146,10 +146,21 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Desktop sidebar */}
-      <aside className={`hidden md:flex flex-col bg-gray-900 border-r border-gray-800 shrink-0 transition-all duration-200 ${collapsed ? 'w-16' : 'w-64'}`}>
-        <SidebarContent />
-      </aside>
+      {/* Desktop sidebar (only rendered when expanded) */}
+      {!collapsed && (
+        <aside className={`hidden md:flex flex-col bg-gray-900 border-r border-gray-800 shrink-0 transition-all duration-200 w-64`}>
+          <SidebarContent />
+        </aside>
+      )}
+
+      {/* When collapsed, show only a small fixed logo to expand the menu */}
+      {collapsed && (
+        <div className="hidden md:flex items-center p-2 fixed top-4 left-4 z-50 cursor-pointer" onClick={() => setCollapsed(false)}>
+          <div className="w-10 h-10 bg-indigo-600 rounded-md flex items-center justify-center shadow-lg">
+            <Wrench size={16} className="text-white" />
+          </div>
+        </div>
+      )}
 
       {/* Mobile header */}
       <div className="md:hidden flex items-center justify-between px-4 py-3 bg-gray-900 border-b border-gray-800 shrink-0">

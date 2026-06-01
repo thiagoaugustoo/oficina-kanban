@@ -70,11 +70,11 @@ export function Sidebar() {
   };
 
   const SidebarContent = ({ mobile = false }) => (
-    <div className={`flex flex-col h-full ${mobile ? 'w-72' : collapsed ? 'w-16' : 'w-64'} transition-all duration-200`}>
+    <div className={`flex flex-col h-full ${mobile ? 'w-64' : collapsed ? 'w-16' : 'w-64'} transition-all duration-200`}>
       {/* Logo */}
       <div className={`flex items-center gap-3 p-4 border-b border-gray-800 ${collapsed && !mobile ? 'justify-center' : ''}`}>
-        <div className="w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center shrink-0">
-          <Wrench size={16} className="text-white" />
+        <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shrink-0">
+          <Wrench size={14} className="text-white" />
         </div>
         {(!collapsed || mobile) && (
           <div className="min-w-0">
@@ -85,7 +85,8 @@ export function Sidebar() {
         {!mobile && (
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="ml-auto text-gray-600 hover:text-gray-300 transition-colors shrink-0"
+            className="ml-auto text-gray-600 hover:text-gray-300 transition-colors shrink-0 p-1"
+            aria-label={collapsed ? 'Expandir menu' : 'Recolher menu'}
           >
             {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
           </button>
@@ -153,9 +154,9 @@ export function Sidebar() {
       {/* Mobile header */}
       <div className="md:hidden flex items-center justify-between px-4 py-3 bg-gray-900 border-b border-gray-800 shrink-0">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center">
-            <Wrench size={14} className="text-white" />
-          </div>
+          <div className="w-7 h-7 bg-indigo-600 rounded-md flex items-center justify-center">
+              <Wrench size={14} className="text-white" />
+            </div>
           <span className="text-white font-bold text-sm">OficinaPro</span>
         </div>
         <div className="flex items-center gap-2">
@@ -167,8 +168,9 @@ export function Sidebar() {
           <button
             onClick={() => setMobileOpen(true)}
             className="p-2 text-gray-400 hover:text-white"
+            aria-label="Abrir menu"
           >
-            <Menu size={20} />
+            <Menu size={18} />
           </button>
         </div>
       </div>

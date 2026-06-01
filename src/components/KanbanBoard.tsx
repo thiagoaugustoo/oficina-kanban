@@ -8,7 +8,7 @@ import {
   TouchSensor,
   useSensor,
   useSensors,
-  closestCenter,
+  rectIntersection,
   useDroppable,
 } from '@dnd-kit/core';
 import {
@@ -113,7 +113,7 @@ export function KanbanBoard() {
   const alerts = useAlerts();
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 10 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
   );
 
@@ -338,7 +338,7 @@ export function KanbanBoard() {
         <div className="flex gap-4 p-4 h-full min-h-0" style={{ minWidth: 'max-content' }}>
           <DndContext
             sensors={sensors}
-            collisionDetection={closestCenter}
+            collisionDetection={rectIntersection}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
           >

@@ -121,14 +121,14 @@ export function Login() {
             )}
 
             <div>
-              <label className="text-sm font-medium text-gray-300 mb-1.5 block">E-mail</label>
+              <label className="text-sm font-medium text-gray-300 mb-1.5 block">E-mail ou usuário</label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
                 <input
-                  type="email"
+                  type="text"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  placeholder="seu@email.com"
+                  placeholder="email@exemplo.com ou usuario123"
                   className="w-full bg-gray-800 border border-gray-600 rounded-xl pl-10 pr-3.5 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                   required
                 />

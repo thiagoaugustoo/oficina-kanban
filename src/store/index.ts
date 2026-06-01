@@ -116,24 +116,49 @@ export const useStore = create<AppState>((set, get) => {
     history: initialHistory,
 
     login: async (email, password) => {
+      const cleanedIdentifier = email.trim();
+      const localUser = get().users.find(u => u.email.toLowerCase() === cleanedIdentifier.toLowerCase() || u.username.toLowerCase() === cleanedIdentifier.toLowerCase());
+      const resolvedEmail = localUser?.email || cleanedIdentifier;
+
       if (isSupabaseConfigured) {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email: resolvedEmail, password });
         if (error || !data.session?.user) {
           console.error('Supabase login failed:', error?.message);
           return false;
         }
 
-        const profile = await fetchUserProfileByEmail(email);
-        if (!profile || !profile.active) {
-          await supabase.auth.signOut();
-          return false;
+        const profile = await fetchUserProfileByEmail(resolvedEmail);
+        if (profile && profile.active) {
+          set({ currentUser: profile });
+          return true;
         }
 
-        set({ currentUser: profile });
-        return true;
+        if (data.user) {
+          const fallbackUser: User = {
+            id: data.user.id,
+            name: (data.user.user_metadata as any)?.name || data.user.email || 'Usuário',
+            username: (data.user.user_metadata as any)?.username || data.user.email?.split('@')[0] || '',
+            email: data.user.email || resolvedEmail,
+            password: '',
+            role: 'user',
+            active: true,
+            createdAt: new Date().toISOString(),
+          };
+
+          const users = get().users.some(u => u.id === fallbackUser.id || u.email === fallbackUser.email)
+            ? get().users
+            : [...get().users, fallbackUser];
+
+          set({ currentUser: fallbackUser, users });
+          saveState('ws_users', users);
+          return true;
+        }
+
+        await supabase.auth.signOut();
+        return false;
       }
 
-      const user = get().users.find(u => u.email === email && u.password === password && u.active);
+      const user = localUser && localUser.password === password && localUser.active ? localUser : undefined;
       if (user) {
         set({ currentUser: user });
         return true;

@@ -61,6 +61,7 @@ export function Sidebar() {
       { id: 'employees', icon: Users, label: 'Funcionários' },
       { id: 'areas', icon: MapPin, label: 'Setores' },
       { id: 'users', icon: UserCheck, label: 'Usuários' },
+      { id: 'settings', icon: Menu, label: 'Configurações' },
     ] : []),
   ];
 

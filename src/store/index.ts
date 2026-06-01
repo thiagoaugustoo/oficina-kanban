@@ -191,19 +191,31 @@ export const useStore = create<AppState>((set, get) => {
       };
 
       if (isSupabaseConfigured) {
-        const { data, error } = await supabase.auth.signUp({ email, password });
+        const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { name, username } } });
         if (error) {
           console.error('Supabase sign-up failed:', error.message);
           return { success: false, message: error.message };
         }
 
-        const users = [...get().users, newUser];
+        // create profile row in public.users table (use user id from auth if available)
+        const userId = (data.user && (data.user.id as string)) || newUser.id;
+        const profile = { ...newUser, id: userId };
+
+        const { error: insertError } = await supabase.from('users').insert([profile]);
+        if (insertError) {
+          console.error('Failed to insert profile into users table:', insertError.message);
+          // fallback to local store but warn
+        }
+
+        const users = get().users.some(u => u.id === profile.id || u.email === profile.email)
+          ? get().users
+          : [...get().users, profile];
+
         set({ users });
         saveState('ws_users', users);
-        await upsertRemote('users', [newUser]);
 
         if (data.user) {
-          set({ currentUser: newUser });
+          set({ currentUser: profile });
         }
 
         return { success: true, message: 'Conta criada com sucesso. Verifique seu e-mail para confirmar o login.' };

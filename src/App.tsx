@@ -8,6 +8,7 @@ import { CompletedVehicles } from './components/CompletedVehicles';
 import { EmployeesManager } from './components/EmployeesManager';
 import { AreasManager } from './components/AreasManager';
 import { UsersManager } from './components/UsersManager';
+import { Settings } from './components/Settings';
 
 export default function App() {
   const { currentUser, activeView } = useStore();
@@ -36,6 +37,8 @@ export default function App() {
         return isAdmin ? <AreasManager /> : <KanbanBoard />;
       case 'users':
         return isAdmin ? <UsersManager /> : <KanbanBoard />;
+      case 'settings':
+        return isAdmin ? <Settings /> : <KanbanBoard />;
       default:
         return <KanbanBoard />;
     }

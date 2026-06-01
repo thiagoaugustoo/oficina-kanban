@@ -48,7 +48,7 @@ interface AppState {
   currentUser: User | null;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
-  createAccount: (name: string, username: string, email: string, password: string) => Promise<{ success: boolean; message: string }>;
+  createAccount: (name: string, username: string, email: string, password: string, role: 'user' | 'admin') => Promise<{ success: boolean; message: string }>;
   resetPassword: (email: string, newPassword?: string) => Promise<{ success: boolean; message: string }>;
 
   // Users
@@ -173,7 +173,7 @@ export const useStore = create<AppState>((set, get) => {
       set({ currentUser: null });
     },
 
-    createAccount: async (name, username, email, password) => {
+    createAccount: async (name, username, email, password, role) => {
       const existingUser = get().users.find(u => u.email === email || u.username === username);
       if (existingUser) {
         return { success: false, message: 'Já existe um usuário com este e-mail ou nome de usuário.' };
@@ -185,7 +185,7 @@ export const useStore = create<AppState>((set, get) => {
         username,
         email,
         password,
-        role: 'user',
+        role,
         active: true,
         createdAt: new Date().toISOString(),
       };

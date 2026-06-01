@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 import { User, Employee, Area, Vehicle, VehicleHistory, VehicleStatus } from '../types';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 const DEFAULT_AREAS: Area[] = [
   { id: 'area-1', name: 'Orçamento', order: 0, color: '#6366f1', createdAt: new Date().toISOString() },
@@ -146,6 +147,7 @@ export const useStore = create<AppState>((set, get) => {
       const users = [...get().users, newUser];
       set({ users });
       saveState('ws_users', users);
+      void upsertRemote('users', [newUser]);
     },
 
     updateUser: (id, data) => {
@@ -156,12 +158,14 @@ export const useStore = create<AppState>((set, get) => {
       if (get().currentUser?.id === id) {
         set({ currentUser: { ...get().currentUser!, ...data } });
       }
+      void upsertRemote('users', users.filter(u => u.id === id));
     },
 
     deleteUser: (id) => {
       const users = get().users.filter(u => u.id !== id);
       set({ users });
       saveState('ws_users', users);
+      void deleteRemote('users', id);
     },
 
     addEmployee: (empData) => {
@@ -169,18 +173,21 @@ export const useStore = create<AppState>((set, get) => {
       const employees = [...get().employees, newEmp];
       set({ employees });
       saveState('ws_employees', employees);
+      void upsertRemote('employees', [newEmp]);
     },
 
     updateEmployee: (id, data) => {
       const employees = get().employees.map(e => e.id === id ? { ...e, ...data } : e);
       set({ employees });
       saveState('ws_employees', employees);
+      void upsertRemote('employees', employees.filter(e => e.id === id));
     },
 
     deleteEmployee: (id) => {
       const employees = get().employees.filter(e => e.id !== id);
       set({ employees });
       saveState('ws_employees', employees);
+      void deleteRemote('employees', id);
     },
 
     addArea: (areaData) => {
@@ -188,23 +195,27 @@ export const useStore = create<AppState>((set, get) => {
       const areas = [...get().areas, newArea].sort((a, b) => a.order - b.order);
       set({ areas });
       saveState('ws_areas', areas);
+      void upsertRemote('areas', [newArea]);
     },
 
     updateArea: (id, data) => {
       const areas = get().areas.map(a => a.id === id ? { ...a, ...data } : a);
       set({ areas });
       saveState('ws_areas', areas);
+      void upsertRemote('areas', areas.filter(a => a.id === id));
     },
 
     deleteArea: (id) => {
       const areas = get().areas.filter(a => a.id !== id);
       set({ areas });
       saveState('ws_areas', areas);
+      void deleteRemote('areas', id);
     },
 
     reorderAreas: (areas) => {
       set({ areas });
       saveState('ws_areas', areas);
+      void upsertRemote('areas', areas);
     },
 
     addVehicle: (vehicleData) => {
@@ -232,6 +243,9 @@ export const useStore = create<AppState>((set, get) => {
       const history = [...get().history, histEntry];
       set({ history });
       saveState('ws_history', history);
+
+      void upsertRemote('vehicles', [newVehicle]);
+      void upsertRemote('history', [histEntry]);
     },
 
     updateVehicle: (id, data) => {
@@ -251,6 +265,12 @@ export const useStore = create<AppState>((set, get) => {
       const history = [...get().history, histEntry];
       set({ history });
       saveState('ws_history', history);
+
+      const updatedVehicle = vehicles.find(v => v.id === id);
+      if (updatedVehicle) {
+        void upsertRemote('vehicles', [updatedVehicle]);
+      }
+      void upsertRemote('history', [histEntry]);
     },
 
     moveVehicle: (vehicleId, toAreaId, employeeId) => {
@@ -289,6 +309,12 @@ export const useStore = create<AppState>((set, get) => {
       const history = [...get().history, histEntry];
       set({ history });
       saveState('ws_history', history);
+
+      const updatedVehicle = vehicles.find(v => v.id === vehicleId);
+      if (updatedVehicle) {
+        void upsertRemote('vehicles', [updatedVehicle]);
+      }
+      void upsertRemote('history', [histEntry]);
     },
 
     completeVehicle: (vehicleId, employeeId) => {
@@ -332,6 +358,12 @@ export const useStore = create<AppState>((set, get) => {
       const history = [...get().history, histEntry];
       set({ history });
       saveState('ws_history', history);
+
+      const updatedVehicle = vehicles.find(v => v.id === vehicleId);
+      if (updatedVehicle) {
+        void upsertRemote('vehicles', [updatedVehicle]);
+      }
+      void upsertRemote('history', [histEntry]);
     },
 
     getVehicleHistory: (vehicleId) => {
@@ -344,3 +376,75 @@ export const useStore = create<AppState>((set, get) => {
     setActiveView: (view) => set({ activeView: view }),
   };
 });
+async function fetchRemoteTable<T>(table: string) {
+  if (!isSupabaseConfigured) return null;
+  const { data, error } = await supabase.from<T>(table).select('*');
+  if (error) {
+    console.error(`Supabase fetch failed for ${table}:`, error.message);
+    return null;
+  }
+  return data;
+}
+
+async function upsertRemote<T>(table: string, rows: T[]) {
+  if (!isSupabaseConfigured || rows.length === 0) return;
+  const { error } = await supabase.from<T>(table).upsert(rows, { onConflict: 'id' });
+  if (error) {
+    console.error(`Supabase upsert failed for ${table}:`, error.message);
+  }
+}
+
+async function deleteRemote(table: string, id: string) {
+  if (!isSupabaseConfigured) return;
+  const { error } = await supabase.from(table).delete().eq('id', id);
+  if (error) {
+    console.error(`Supabase delete failed for ${table}:`, error.message);
+  }
+}
+
+async function refreshRemoteState() {
+  if (!isSupabaseConfigured) return;
+
+  const [users, employees, areas, vehicles, history] = await Promise.all([
+    fetchRemoteTable<User>('users'),
+    fetchRemoteTable<Employee>('employees'),
+    fetchRemoteTable<Area>('areas'),
+    fetchRemoteTable<Vehicle>('vehicles'),
+    fetchRemoteTable<VehicleHistory>('history'),
+  ]);
+
+  if (users) useStore.setState({ users });
+  if (employees) useStore.setState({ employees });
+  if (areas) useStore.setState({ areas });
+  if (vehicles) useStore.setState({ vehicles });
+  if (history) useStore.setState({ history });
+}
+
+function subscribeToRemoteChanges() {
+  if (!isSupabaseConfigured) return;
+
+  const channel = supabase.channel('realtime-sync');
+  const tables = ['users', 'employees', 'areas', 'vehicles', 'history'];
+
+  tables.forEach(table => {
+    channel.on('postgres_changes', { event: '*', schema: 'public', table }, () => {
+      refreshRemoteState();
+    });
+  });
+
+  channel.subscribe(status => {
+    if (status?.error) {
+      console.error('Supabase realtime subscription error:', status.error.message);
+    }
+  });
+}
+
+export async function initSupabaseSync() {
+  if (!isSupabaseConfigured) {
+    console.warn('Supabase is not configured. Remote sync disabled.');
+    return;
+  }
+
+  await refreshRemoteState();
+  subscribeToRemoteChanges();
+}

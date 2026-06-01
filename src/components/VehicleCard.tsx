@@ -1,5 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useStore } from '../store';
 import { Vehicle } from '../types';
 import { getDeadlineStatus, getDeadlineColor, getDeadlineLabel, formatDate } from '../utils/deadline';
 import { User, Calendar, AlertTriangle } from 'lucide-react';
@@ -15,6 +16,9 @@ export function VehicleCard({ vehicle, onClick, isDragging }: VehicleCardProps) 
     id: vehicle.id,
     data: { vehicle },
   });
+  const { employees } = useStore();
+  const estimator = employees.find(e => e.id === vehicle.estimatorId);
+  const estimatorLabel = estimator ? `${estimator.name}${estimator.role ? ` · ${estimator.role}` : ''}` : vehicle.estimatorId;
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -70,7 +74,7 @@ export function VehicleCard({ vehicle, onClick, isDragging }: VehicleCardProps) 
         {/* Estimator */}
         <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-2">
           <User size={11} />
-          <span className="truncate">{vehicle.estimatorId}</span>
+          <span className="truncate">{estimatorLabel}</span>
         </div>
 
         {/* Deadline */}

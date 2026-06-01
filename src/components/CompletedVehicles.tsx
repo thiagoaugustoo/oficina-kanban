@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 
 export function CompletedVehicles() {
-  const { vehicles, currentUser, reopenVehicle } = useStore();
+  const { vehicles, currentUser, reopenVehicle, employees } = useStore();
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [showDetail, setShowDetail] = useState(false);
 
@@ -29,17 +29,23 @@ export function CompletedVehicles() {
 
     if (search) {
       const q = search.toLowerCase();
-      list = list.filter(v =>
-        v.plate.toLowerCase().includes(q) ||
-        v.model.toLowerCase().includes(q) ||
-        v.brand.toLowerCase().includes(q) ||
-        (v.clientName?.toLowerCase().includes(q)) ||
-        v.estimatorId.toLowerCase().includes(q)
-      );
+      list = list.filter(v => {
+        const estimatorName = employees.find(e => e.id === v.estimatorId)?.name || v.estimatorId;
+        return (
+          v.plate.toLowerCase().includes(q) ||
+          v.model.toLowerCase().includes(q) ||
+          v.brand.toLowerCase().includes(q) ||
+          (v.clientName?.toLowerCase().includes(q)) ||
+          estimatorName.toLowerCase().includes(q)
+        );
+      });
     }
 
     if (filterEstimator) {
-      list = list.filter(v => v.estimatorId.toLowerCase().includes(filterEstimator.toLowerCase()));
+      list = list.filter(v => {
+        const estimatorName = employees.find(e => e.id === v.estimatorId)?.name || v.estimatorId;
+        return estimatorName.toLowerCase().includes(filterEstimator.toLowerCase());
+      });
     }
 
     if (filterFromDate) {
@@ -191,7 +197,7 @@ export function CompletedVehicles() {
                 </div>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-400 mb-3">
                   <span className="flex items-center gap-1"><User size={10} /> {v.clientName || '-'}</span>
-                  <span className="flex items-center gap-1"><User size={10} /> {v.estimatorId}</span>
+                  <span className="flex items-center gap-1"><User size={10} /> {employees.find(e => e.id === v.estimatorId)?.name || v.estimatorId}</span>
                   <span className="flex items-center gap-1"><Calendar size={10} /> {formatDate(v.entryDate)}</span>
                   <span className="flex items-center gap-1"><CheckCircle size={10} /> {formatDate(v.completedAt)}</span>
                   {v.completedAt && (
@@ -220,7 +226,7 @@ export function CompletedVehicles() {
                 <span className="text-gray-300 text-sm truncate">{v.clientName || '-'}</span>
                 <span className="text-gray-300 text-sm">{formatDate(v.entryDate)}</span>
                 <span className="text-green-400 text-sm">{formatDate(v.completedAt)}</span>
-                <span className="text-gray-300 text-sm truncate">{v.estimatorId}</span>
+                <span className="text-gray-300 text-sm truncate">{employees.find(e => e.id === v.estimatorId)?.name || v.estimatorId}</span>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-400 text-sm">
                     {v.completedAt ? formatDuration(v.entryDate, v.completedAt) : '-'}

@@ -40,6 +40,8 @@ export function VehicleDetailModal({ isOpen, onClose, vehicle }: VehicleDetailMo
     return employees.find(e => e.id === id)?.name || 'Não informado';
   };
 
+  const estimatorName = getEmployeeName(vehicle.estimatorId);
+
   const workedEmployees = [...new Set(
     vHistory
       .filter(h => h.employeeId)
@@ -94,7 +96,7 @@ export function VehicleDetailModal({ isOpen, onClose, vehicle }: VehicleDetailMo
               <div className="flex items-center gap-2 text-gray-400 text-xs mb-1">
                 <User size={12} /> Orçamentista
               </div>
-              <p className="text-white text-sm font-medium">{vehicle.estimatorId}</p>
+              <p className="text-white text-sm font-medium">{estimatorName}</p>
             </div>
             <div className="bg-gray-800 rounded-xl p-3">
               <div className="flex items-center gap-2 text-gray-400 text-xs mb-1">

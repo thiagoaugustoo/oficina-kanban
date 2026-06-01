@@ -1,4 +1,5 @@
-import { useStore } from './store';
+import { useEffect } from 'react';
+import { useStore, initSupabaseSync } from './store';
 import { Login } from './components/Login';
 import { Sidebar } from './components/Sidebar';
 import { KanbanBoard } from './components/KanbanBoard';
@@ -10,6 +11,10 @@ import { UsersManager } from './components/UsersManager';
 
 export default function App() {
   const { currentUser, activeView } = useStore();
+
+  useEffect(() => {
+    void initSupabaseSync();
+  }, []);
 
   if (!currentUser) {
     return <Login />;

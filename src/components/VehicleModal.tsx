@@ -14,8 +14,9 @@ interface VehicleModalProps {
 }
 
 export function VehicleModal({ isOpen, onClose, vehicle, defaultAreaId }: VehicleModalProps) {
-  const { areas, currentUser, addVehicle, updateVehicle } = useStore();
+  const { areas, currentUser, employees, addVehicle, updateVehicle } = useStore();
   const sortedAreas = [...areas].sort((a, b) => a.order - b.order);
+  const activeEstimators = employees.filter(e => e.active && e.isEstimator);
 
   const [form, setForm] = useState({
     plate: '',
@@ -26,7 +27,7 @@ export function VehicleModal({ isOpen, onClose, vehicle, defaultAreaId }: Vehicl
     observations: '',
     entryDate: new Date().toISOString().split('T')[0],
     promisedDate: '',
-    estimatorId: currentUser?.name || '',
+    estimatorId: activeEstimators[0]?.id || '',
     currentAreaId: defaultAreaId || areas[0]?.id || '',
   });
 
@@ -56,7 +57,7 @@ export function VehicleModal({ isOpen, onClose, vehicle, defaultAreaId }: Vehicl
         observations: '',
         entryDate: new Date().toISOString().split('T')[0],
         promisedDate: '',
-        estimatorId: currentUser?.name || '',
+        estimatorId: activeEstimators[0]?.id || '',
         currentAreaId: defaultAreaId || areas[0]?.id || '',
       });
     }
@@ -164,13 +165,21 @@ export function VehicleModal({ isOpen, onClose, vehicle, defaultAreaId }: Vehicl
           placeholder="João Silva"
         />
 
-        <Input
+        <Select
           label="Orçamentista *"
           value={form.estimatorId}
           onChange={e => set('estimatorId', e.target.value)}
-          placeholder="Felipe"
           error={errors.estimatorId}
-        />
+        >
+          <option value="">Selecionar orçamentista...</option>
+          {activeEstimators.length > 0 ? (
+            activeEstimators.map(emp => (
+              <option key={emp.id} value={emp.id}>{emp.name} - {emp.role}</option>
+            ))
+          ) : (
+            <option value="" disabled>Nenhum orçamentista ativo</option>
+          )}
+        </Select>
 
         <Select
           label="Setor Inicial *"

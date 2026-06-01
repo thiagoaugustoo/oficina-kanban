@@ -27,25 +27,7 @@ const DEFAULT_EMPLOYEES: Employee[] = [
   { id: 'emp-6', name: 'Felipe', role: 'Orçamentista', isEstimator: true, active: true, createdAt: new Date().toISOString() },
 ];
 
-const DEFAULT_ADMIN: User = {
-  id: 'user-admin',
-  name: 'Administrador',
-  email: 'admin@oficina.com',
-  password: 'admin123',
-  role: 'admin',
-  active: true,
-  createdAt: new Date().toISOString(),
-};
-
-const DEFAULT_USER: User = {
-  id: 'user-1',
-  name: 'Felipe',
-  email: 'felipe@oficina.com',
-  password: '123456',
-  role: 'user',
-  active: true,
-  createdAt: new Date().toISOString(),
-};
+const DEFAULT_USERS: User[] = [];
 
 function loadState<T>(key: string, defaultValue: T): T {
   try {
@@ -64,8 +46,10 @@ function saveState<T>(key: string, value: T): void {
 interface AppState {
   // Auth
   currentUser: User | null;
-  login: (email: string, password: string) => boolean;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
+  createAccount: (name: string, username: string, email: string, password: string) => Promise<{ success: boolean; message: string }>;
+  resetPassword: (email: string, newPassword?: string) => Promise<{ success: boolean; message: string }>;
 
   // Users
   users: User[];
@@ -112,7 +96,7 @@ interface AppState {
 }
 
 export const useStore = create<AppState>((set, get) => {
-  const initialUsers = loadState<User[]>('ws_users', [DEFAULT_ADMIN, DEFAULT_USER]);
+  const initialUsers = loadState<User[]>('ws_users', DEFAULT_USERS);
   const initialEmployees = loadState<Employee[]>('ws_employees', DEFAULT_EMPLOYEES);
   const initialAreas = loadState<Area[]>('ws_areas', DEFAULT_AREAS);
   const initialVehicles = loadState<Vehicle[]>('ws_vehicles', []);
@@ -131,7 +115,24 @@ export const useStore = create<AppState>((set, get) => {
     vehicles: initialVehicles,
     history: initialHistory,
 
-    login: (email, password) => {
+    login: async (email, password) => {
+      if (isSupabaseConfigured) {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error || !data.session?.user) {
+          console.error('Supabase login failed:', error?.message);
+          return false;
+        }
+
+        const profile = await fetchUserProfileByEmail(email);
+        if (!profile || !profile.active) {
+          await supabase.auth.signOut();
+          return false;
+        }
+
+        set({ currentUser: profile });
+        return true;
+      }
+
       const user = get().users.find(u => u.email === email && u.password === password && u.active);
       if (user) {
         set({ currentUser: user });
@@ -140,7 +141,77 @@ export const useStore = create<AppState>((set, get) => {
       return false;
     },
 
-    logout: () => set({ currentUser: null }),
+    logout: async () => {
+      if (isSupabaseConfigured) {
+        await supabase.auth.signOut();
+      }
+      set({ currentUser: null });
+    },
+
+    createAccount: async (name, username, email, password) => {
+      const existingUser = get().users.find(u => u.email === email || u.username === username);
+      if (existingUser) {
+        return { success: false, message: 'Já existe um usuário com este e-mail ou nome de usuário.' };
+      }
+
+      const newUser: User = {
+        id: uuidv4(),
+        name,
+        username,
+        email,
+        password,
+        role: 'user',
+        active: true,
+        createdAt: new Date().toISOString(),
+      };
+
+      if (isSupabaseConfigured) {
+        const { data, error } = await supabase.auth.signUp({ email, password });
+        if (error) {
+          console.error('Supabase sign-up failed:', error.message);
+          return { success: false, message: error.message };
+        }
+
+        const users = [...get().users, newUser];
+        set({ users });
+        saveState('ws_users', users);
+        await upsertRemote('users', [newUser]);
+
+        if (data.user) {
+          set({ currentUser: newUser });
+        }
+
+        return { success: true, message: 'Conta criada com sucesso. Verifique seu e-mail para confirmar o login.' };
+      }
+
+      const users = [...get().users, newUser];
+      set({ users, currentUser: newUser });
+      saveState('ws_users', users);
+      return { success: true, message: 'Conta criada com sucesso. Agora você está logado.' };
+    },
+
+    resetPassword: async (email, newPassword) => {
+      const user = get().users.find(u => u.email === email);
+      if (!user) {
+        return { success: false, message: 'E-mail não encontrado.' };
+      }
+
+      if (isSupabaseConfigured) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email);
+        if (error) {
+          console.error('Supabase reset password failed:', error.message);
+          return { success: false, message: error.message };
+        }
+        return { success: true, message: 'Link de redefinição enviado para o e-mail.' };
+      }
+
+      if (!newPassword) {
+        return { success: false, message: 'Informe uma nova senha para redefinir localmente.' };
+      }
+
+      updateUser(user.id, { password: newPassword });
+      return { success: true, message: 'Senha redefinida com sucesso.' };
+    },
 
     addUser: (userData) => {
       const newUser: User = { ...userData, id: uuidv4(), createdAt: new Date().toISOString() };
@@ -402,6 +473,16 @@ async function deleteRemote(table: string, id: string) {
   }
 }
 
+async function fetchUserProfileByEmail(email: string) {
+  if (!isSupabaseConfigured) return null;
+  const { data, error } = await supabase.from<User>('users').select('*').eq('email', email).single();
+  if (error) {
+    console.error('Failed to load user profile:', error.message);
+    return null;
+  }
+  return data;
+}
+
 async function refreshRemoteState() {
   if (!isSupabaseConfigured) return;
 
@@ -447,4 +528,47 @@ export async function initSupabaseSync() {
 
   await refreshRemoteState();
   subscribeToRemoteChanges();
+  subscribeToAuthChanges();
+  await loadCurrentSession();
+}
+
+async function loadCurrentSession() {
+  if (!isSupabaseConfigured) return;
+
+  const { data, error } = await supabase.auth.getSession();
+  if (error) {
+    console.error('Failed to get auth session:', error.message);
+    return;
+  }
+
+  const email = data.session?.user?.email;
+  if (email) {
+    const profile = await fetchUserProfileByEmail(email);
+    if (profile && profile.active) {
+      useStore.setState({ currentUser: profile });
+    } else {
+      await supabase.auth.signOut();
+      useStore.setState({ currentUser: null });
+    }
+  }
+}
+
+function subscribeToAuthChanges() {
+  if (!isSupabaseConfigured) return;
+
+  supabase.auth.onAuthStateChange(async (_event, session) => {
+    const email = session?.user?.email;
+    if (!email) {
+      useStore.setState({ currentUser: null });
+      return;
+    }
+
+    const profile = await fetchUserProfileByEmail(email);
+    if (profile && profile.active) {
+      useStore.setState({ currentUser: profile });
+    } else {
+      await supabase.auth.signOut();
+      useStore.setState({ currentUser: null });
+    }
+  });
 }

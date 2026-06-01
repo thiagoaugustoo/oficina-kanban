@@ -12,6 +12,7 @@ function UserFormModal({ isOpen, onClose, user }: {
   const { addUser, updateUser } = useStore();
   const [form, setForm] = useState({
     name: user?.name || '',
+    username: user?.username || '',
     email: user?.email || '',
     password: user ? '' : '',
     role: user?.role || 'user',
@@ -28,16 +29,17 @@ function UserFormModal({ isOpen, onClose, user }: {
     e.preventDefault();
     const errs: Record<string, string> = {};
     if (!form.name.trim()) errs.name = 'Nome é obrigatório';
+    if (!form.username.trim()) errs.username = 'Nome de usuário é obrigatório';
     if (!form.email.trim()) errs.email = 'E-mail é obrigatório';
     if (!user && !form.password.trim()) errs.password = 'Senha é obrigatória';
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
 
     if (user) {
-      const data: Partial<User> = { name: form.name, email: form.email, role: form.role as 'admin' | 'user', active: form.active };
+      const data: Partial<User> = { name: form.name, username: form.username, email: form.email, role: form.role as 'admin' | 'user', active: form.active };
       if (form.password.trim()) data.password = form.password;
       updateUser(user.id, data);
     } else {
-      addUser({ name: form.name, email: form.email, password: form.password, role: form.role as 'admin' | 'user', active: form.active });
+      addUser({ name: form.name, username: form.username, email: form.email, password: form.password, role: form.role as 'admin' | 'user', active: form.active });
     }
     onClose();
   };
@@ -46,6 +48,7 @@ function UserFormModal({ isOpen, onClose, user }: {
     <Modal isOpen={isOpen} onClose={onClose} title={user ? 'Editar Usuário' : 'Novo Usuário'} size="sm">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Input label="Nome *" value={form.name} onChange={e => set('name', e.target.value)} error={errors.name} placeholder="João Silva" />
+        <Input label="Nome de usuário *" value={form.username} onChange={e => set('username', e.target.value)} error={errors.username} placeholder="usuario123" />
         <Input label="E-mail *" type="email" value={form.email} onChange={e => set('email', e.target.value)} error={errors.email} placeholder="joao@oficina.com" />
         <Input
           label={user ? 'Nova Senha (deixe em branco para manter)' : 'Senha *'}
@@ -116,6 +119,9 @@ export function UsersManager() {
                   <div className="flex items-center gap-2">
                     <p className="text-white font-semibold text-sm">{u.name}</p>
                     {u.id === currentUser?.id && <span className="text-xs bg-indigo-900 text-indigo-300 px-1.5 py-0.5 rounded-md">Você</span>}
+                  </div>
+                  <div className="text-gray-400 text-xs">
+                    @{u.username}
                   </div>
                   <div className="flex items-center gap-1 text-gray-400 text-xs">
                     <Mail size={10} /> {u.email}

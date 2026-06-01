@@ -162,35 +162,22 @@ export function Sidebar() {
         </div>
       )}
 
-      {/* Mobile header */}
-      <div className="md:hidden flex items-center justify-between px-4 py-3 bg-gray-900 border-b border-gray-800 shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-indigo-600 rounded-md flex items-center justify-center">
-              <Wrench size={14} className="text-white" />
-            </div>
-          <span className="text-white font-bold text-sm">OficinaPro</span>
-        </div>
-        <div className="flex items-center gap-2">
-          {alertCount > 0 && (
-            <div className="w-5 h-5 bg-red-500 rounded-full text-xs text-white flex items-center justify-center font-bold">
-              {alertCount > 9 ? '9+' : alertCount}
-            </div>
-          )}
-          <button
-            onClick={() => setMobileOpen(true)}
-            className="p-2 text-gray-400 hover:text-white"
-            aria-label="Abrir menu"
-          >
-            <Menu size={18} />
-          </button>
-        </div>
+      {/* Mobile toggle button */}
+      <div className="md:hidden fixed top-4 left-4 z-50">
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="w-10 h-10 rounded-full bg-gray-900 border border-gray-800 text-gray-300 hover:text-white hover:bg-gray-800 shadow-lg flex items-center justify-center"
+          aria-label="Abrir menu"
+        >
+          <Menu size={18} />
+        </button>
       </div>
 
       {/* Mobile drawer */}
       {mobileOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
-          <div className="relative bg-gray-900 border-r border-gray-800 flex flex-col">
+          <div className="relative bg-gray-900 border-r border-gray-800 w-64 max-w-full flex flex-col">
             <div className="absolute top-3 right-3">
               <button onClick={() => setMobileOpen(false)} className="p-2 text-gray-400 hover:text-white">
                 <X size={18} />

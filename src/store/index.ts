@@ -18,11 +18,12 @@ const DEFAULT_AREAS: Area[] = [
 ];
 
 const DEFAULT_EMPLOYEES: Employee[] = [
-  { id: 'emp-1', name: 'Roberto', role: 'Mecânico', active: true, createdAt: new Date().toISOString() },
-  { id: 'emp-2', name: 'Cleomar', role: 'Lateiro', active: true, createdAt: new Date().toISOString() },
-  { id: 'emp-3', name: 'Tiago', role: 'Preparador', active: true, createdAt: new Date().toISOString() },
-  { id: 'emp-4', name: 'Fabiano', role: 'Pintor', active: true, createdAt: new Date().toISOString() },
-  { id: 'emp-5', name: 'Adriano', role: 'Polidor', active: true, createdAt: new Date().toISOString() },
+  { id: 'emp-1', name: 'Roberto', role: 'Mecânico', areaId: 'area-3', active: true, createdAt: new Date().toISOString() },
+  { id: 'emp-2', name: 'Cleomar', role: 'Lateiro', areaId: 'area-5', active: true, createdAt: new Date().toISOString() },
+  { id: 'emp-3', name: 'Tiago', role: 'Preparador', areaId: 'area-6', active: true, createdAt: new Date().toISOString() },
+  { id: 'emp-4', name: 'Fabiano', role: 'Pintor', areaId: 'area-7', active: true, createdAt: new Date().toISOString() },
+  { id: 'emp-5', name: 'Adriano', role: 'Polidor', areaId: 'area-8', active: true, createdAt: new Date().toISOString() },
+  { id: 'emp-6', name: 'Felipe', role: 'Orçamentista', isEstimator: true, active: true, createdAt: new Date().toISOString() },
 ];
 
 const DEFAULT_ADMIN: User = {

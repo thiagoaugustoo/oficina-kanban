@@ -14,6 +14,8 @@ export interface Employee {
   id: string;
   name: string;
   role: string;
+  areaId?: string;
+  isEstimator?: boolean;
   phone?: string;
   active: boolean;
   createdAt: string;

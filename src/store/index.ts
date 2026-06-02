@@ -127,11 +127,34 @@ export const useStore = create<AppState>((set, get) => {
           return false;
         }
 
-        const profile = await fetchUserProfileByEmail(resolvedEmail);
+       /* const profile = await fetchUserProfileByEmail(resolvedEmail);
         if (profile && profile.active) {
           set({ currentUser: profile });
           return true;
         }
+          */
+
+        let profile = await fetchUserProfileByEmail(resolvedEmail);
+        
+          if (!profile && data.user) {
+            profile = {
+              id: data.user.id,
+              name: data.user.user_metadata?.name || '',
+              username: resolvedEmail.split('@')[0],
+              email: resolvedEmail,
+              password: '',
+              role: 'admin',
+              active: true,
+              createdAt: new Date().toISOString()
+            };
+
+            await supabase.from('users').upsert([profile]);
+          }
+
+if (profile?.active) {
+  set({ currentUser: profile });
+  return true;
+}
 
         if (data.user) {
           const fallbackUser: User = {
@@ -513,7 +536,7 @@ async function deleteRemote(table: string, id: string) {
 
 async function fetchUserProfileByEmail(email: string) {
   if (!isSupabaseConfigured) return null;
-  const { data, error } = await supabase.from<User>('users').select('*').eq('email', email).single();
+  const { data, error } = await supabase.from<User>('users').select('*').eq('email', email).maybeSingle();
   if (error) {
     console.error('Failed to load user profile:', error.message);
     return null;

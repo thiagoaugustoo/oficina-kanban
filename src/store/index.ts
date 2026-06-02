@@ -135,7 +135,7 @@ export const useStore = create<AppState>((set, get) => {
           */
 
         let profile = await fetchUserProfileByEmail(resolvedEmail);
-        
+
           if (!profile && data.user) {
             profile = {
               id: data.user.id,
@@ -221,14 +221,11 @@ if (profile?.active) {
           return { success: false, message: error.message };
         }
 
-        // create profile row in public.users table (use user id from auth if available)
-        const userId = (data.user && (data.user.id as string)) || newUser.id;
-        const profile = { ...newUser, id: userId };
-
-        const { error: insertError } = await supabase.from('users').insert([profile]);
-        if (insertError) {
-          console.error('Failed to insert profile into users table:', insertError.message);
-          // fallback to local store but warn
+                if (data.user) {
+          return {
+            success: true,
+            message: 'Conta criada com sucesso. Verifique seu e-mail para confirmar o cadastro.'
+          };
         }
 
         const users = get().users.some(u => u.id === profile.id || u.email === profile.email)
@@ -536,11 +533,18 @@ async function deleteRemote(table: string, id: string) {
 
 async function fetchUserProfileByEmail(email: string) {
   if (!isSupabaseConfigured) return null;
-  const { data, error } = await supabase.from<User>('users').select('*').eq('email', email).maybeSingle();
+
+  const { data, error } = await supabase
+    .from<User>('users')
+    .select('*')
+    .eq('email', email)
+    .maybeSingle();
+
   if (error) {
     console.error('Failed to load user profile:', error.message);
     return null;
   }
+
   return data;
 }
 

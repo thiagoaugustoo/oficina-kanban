@@ -15,7 +15,6 @@ function UserFormModal({ isOpen, onClose, user }: {
     email: user?.email || '',
     password: user ? '' : '',
     role: user?.role || 'user',
-    isEstimator: user?.isEstimator || false,
     active: user?.active ?? true,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -38,7 +37,6 @@ function UserFormModal({ isOpen, onClose, user }: {
         name: form.name,
         email: form.email,
         role: form.role as 'admin' | 'user',
-        isEstimator: form.isEstimator,
         active: form.active,
       };
       if (form.password.trim()) data.password = form.password;
@@ -49,7 +47,6 @@ function UserFormModal({ isOpen, onClose, user }: {
         email: form.email,
         password: form.password,
         role: form.role as 'admin' | 'user',
-        isEstimator: form.isEstimator,
         active: form.active,
       });
     }
@@ -73,7 +70,6 @@ function UserFormModal({ isOpen, onClose, user }: {
           <option value="user">Usuário</option>
           <option value="admin">Administrador</option>
         </Select>
-        <Toggle label="Orçamentista" checked={form.isEstimator} onChange={v => set('isEstimator', v)} />
         <Toggle label="Usuário ativo" checked={form.active} onChange={v => set('active', v)} />
         <div className="flex gap-3 pt-2">
           <Button variant="secondary" className="flex-1" type="button" onClick={onClose}>Cancelar</Button>
@@ -140,11 +136,6 @@ export function UsersManager() {
                   <div className="flex items-center gap-1 text-gray-400 text-xs">
                     <Mail size={10} /> {u.email}
                   </div>
-                  {u.isEstimator && (
-                    <div className="inline-flex items-center gap-1 mt-2 text-xs text-indigo-300 bg-indigo-950/40 px-2 py-1 rounded-full">
-                      <UserIcon size={10} /> Orçamentista
-                    </div>
-                  )}
                 </div>
               </div>
               <div className="flex flex-col items-end gap-1">

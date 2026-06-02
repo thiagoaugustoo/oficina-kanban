@@ -114,32 +114,6 @@ function EmployeeFormModal({ isOpen, onClose, employee }: {
   );
 }
 
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title={employee ? 'Editar Funcionário' : 'Novo Funcionário'} size="sm">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <Input label="Nome *" value={form.name} onChange={e => set('name', e.target.value)} error={errors.name} placeholder="Roberto" />
-        <Input label="Função *" value={form.role} onChange={e => set('role', e.target.value)} error={errors.role} placeholder="Mecânico" />
-        <Select
-          label="Setor"
-          value={form.areaId}
-          onChange={e => set('areaId', e.target.value)}
-          error={errors.areaId}
-        >
-          <option value="">Selecionar setor...</option>
-          {areas.map(area => (
-            <option key={area.id} value={area.id}>{area.name}</option>
-          ))}
-        </Select>
-        <Input label="Telefone" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="(00) 00000-0000" />
-        <Toggle label="Funcionário ativo" checked={form.active} onChange={v => set('active', v)} />
-        <div className="flex gap-3 pt-2">
-          <Button variant="secondary" className="flex-1" type="button" onClick={onClose}>Cancelar</Button>
-          <Button className="flex-1" type="submit">{employee ? 'Salvar' : 'Cadastrar'}</Button>
-        </div>
-      </form>
-    </Modal>
-  );
-
 export function EmployeesManager() {
   const { employees, deleteEmployee, areas } = useStore();
   const [showForm, setShowForm] = useState(false);

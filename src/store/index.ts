@@ -387,7 +387,7 @@ if (profile?.active) {
 
     addArea: (areaData) => {
       const newArea: Area = { ...areaData, id: uuidv4(), createdAt: new Date().toISOString() };
-      const areas = [...get().areas, newArea].sort((a, b) => a.order - b.order);
+      const areas = [...get().areas, newArea].sort((a, b) => a.displayOrder - b.displayOrder);
       set({ areas });
       saveState('ws_areas', areas);
       void upsertRemote('areas', [newArea]);

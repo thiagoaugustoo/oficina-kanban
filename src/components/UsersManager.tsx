@@ -100,31 +100,7 @@ function UserFormModal({ isOpen, onClose, user }: {
   );
 }
 
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title={user ? 'Editar Usuário' : 'Novo Usuário'} size="sm">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <Input label="Nome *" value={form.name} onChange={e => set('name', e.target.value)} error={errors.name} placeholder="João Silva" />
-        <Input label="E-mail *" type="email" value={form.email} onChange={e => set('email', e.target.value)} error={errors.email} placeholder="joao@oficina.com" />
-        <Input
-          label={user ? 'Nova Senha (deixe em branco para manter)' : 'Senha *'}
-          type="password"
-          value={form.password}
-          onChange={e => set('password', e.target.value)}
-          error={errors.password}
-          placeholder="••••••••"
-        />
-        <Select label="Perfil *" value={form.role} onChange={e => set('role', e.target.value)}>
-          <option value="user">Usuário</option>
-          <option value="admin">Administrador</option>
-        </Select>
-        <Toggle label="Usuário ativo" checked={form.active} onChange={v => set('active', v)} />
-        <div className="flex gap-3 pt-2">
-          <Button variant="secondary" className="flex-1" type="button" onClick={onClose}>Cancelar</Button>
-          <Button className="flex-1" type="submit">{user ? 'Salvar' : 'Criar'}</Button>
-        </div>
-      </form>
-    </Modal>
-  );
+
 
 export function UsersManager() {
   const { users, currentUser, deleteUser } = useStore();

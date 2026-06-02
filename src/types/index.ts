@@ -26,7 +26,7 @@ export interface Employee {
 export interface Area {
   id: string;
   name: string;
-  order: number;
+  displayOrder: number;
   color?: string;
   createdAt: string;
 }

@@ -77,11 +77,11 @@ function AreaFormModal({ isOpen, onClose, area }: {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) { setError('Nome é obrigatório'); return; }
-    const maxOrder = Math.max(...areas.map(a => a.order), -1);
+    const maxOrder = Math.max(...areas.map(a => a.displayOrder), -1);
     if (area) {
       updateArea(area.id, { name, color });
     } else {
-      addArea({ name, color, order: maxOrder + 1 });
+      addArea({ name, color, displayOrder: maxOrder + 1 });
     }
     onClose();
   };
@@ -128,7 +128,7 @@ export function AreasManager() {
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
   );
 
-  const sortedAreas = [...areas].sort((a, b) => a.order - b.order);
+  const sortedAreas = [...areas].sort((a, b) => a.displayOrder - b.displayOrder);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -136,7 +136,7 @@ export function AreasManager() {
 
     const oldIndex = sortedAreas.findIndex(a => a.id === active.id);
     const newIndex = sortedAreas.findIndex(a => a.id === over.id);
-    const reordered = arrayMove(sortedAreas, oldIndex, newIndex).map((a, i) => ({ ...a, order: i }));
+    const reordered = arrayMove(sortedAreas, oldIndex, newIndex).map((a, i) => ({ ...a, displayOrder: i }));
     reorderAreas(reordered);
   };
 

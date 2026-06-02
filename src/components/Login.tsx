@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../store';
 import { Button } from './ui/Button';
-import { Lock, Mail, Wrench, Key } from 'lucide-react';
+import { Lock, Mail, Wrench, Eye, EyeOff } from 'lucide-react';
 import { isSupabaseConfigured } from '../lib/supabase';
 
 export function Login() {
@@ -10,11 +10,11 @@ export function Login() {
   const resetPassword = useStore(s => s.resetPassword);
   const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
   const [name, setName] = useState('');
-  const [username, setUsername] = useState('');
   const [role, setRole] = useState<'user' | 'admin'>('user');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,12 +32,12 @@ export function Login() {
           setError('E-mail ou senha inválidos.');
         }
       } else if (mode === 'signup') {
-        if (!name.trim() || !username.trim() || !email.trim() || !password.trim()) {
+        if (!name.trim() || !email.trim() || !password.trim()) {
           setError('Preencha todos os campos obrigatórios.');
         } else if (password !== confirmPassword) {
           setError('As senhas não coincidem.');
         } else {
-          const result = await createAccount(name.trim(), username.trim(), email.trim(), password, role);
+          const result = await createAccount(name.trim(), email.trim(), password, role);
           if (!result.success) {
             setError(result.message);
           } else {
@@ -109,17 +109,6 @@ export function Login() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-300 mb-1.5 block">Nome de usuário</label>
-                  <input
-                    type="text"
-                    value={username}
-                    onChange={e => setUsername(e.target.value)}
-                    placeholder="usuario123"
-                    className="w-full bg-gray-800 border border-gray-600 rounded-xl px-3.5 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                    required
-                  />
-                </div>
-                <div>
                   <label className="text-sm font-medium text-gray-300 mb-1.5 block">Perfil</label>
                   <select
                     value={role}
@@ -134,14 +123,14 @@ export function Login() {
             )}
 
             <div>
-              <label className="text-sm font-medium text-gray-300 mb-1.5 block">E-mail ou usuário</label>
+              <label className="text-sm font-medium text-gray-300 mb-1.5 block">E-mail</label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
                 <input
-                  type="text"
+                  type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  placeholder="email@exemplo.com ou usuario123"
+                  placeholder="email@exemplo.com"
                   className="w-full bg-gray-800 border border-gray-600 rounded-xl pl-10 pr-3.5 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                   required
                 />
@@ -156,13 +145,21 @@ export function Login() {
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-gray-800 border border-gray-600 rounded-xl pl-10 pr-3.5 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    className="w-full bg-gray-800 border border-gray-600 rounded-xl pl-10 pr-12 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                     required={mode !== 'forgot' || !isSupabaseConfigured}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                    aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
             )}
@@ -173,13 +170,21 @@ export function Login() {
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     value={confirmPassword}
                     onChange={e => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-gray-800 border border-gray-600 rounded-xl pl-10 pr-3.5 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    className="w-full bg-gray-800 border border-gray-600 rounded-xl pl-10 pr-12 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                     required
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                    aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
             ) : null}

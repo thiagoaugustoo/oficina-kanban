@@ -48,7 +48,7 @@ interface AppState {
   currentUser: User | null;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
-  createAccount: (name: string, username: string, email: string, password: string, role: 'user' | 'admin') => Promise<{ success: boolean; message: string }>;
+  createAccount: (name: string, email: string, password: string, role: 'user' | 'admin') => Promise<{ success: boolean; message: string }>;
   resetPassword: (email: string, newPassword?: string) => Promise<{ success: boolean; message: string }>;
 
   // Users
@@ -117,7 +117,7 @@ export const useStore = create<AppState>((set, get) => {
 
     login: async (email, password) => {
       const cleanedIdentifier = email.trim();
-      const localUser = get().users.find(u => u.email.toLowerCase() === cleanedIdentifier.toLowerCase() || u.username.toLowerCase() === cleanedIdentifier.toLowerCase());
+      const localUser = get().users.find(u => u.email.toLowerCase() === cleanedIdentifier.toLowerCase() || u.username?.toLowerCase() === cleanedIdentifier.toLowerCase());
       const resolvedEmail = localUser?.email || cleanedIdentifier;
 
       if (isSupabaseConfigured) {
@@ -173,12 +173,13 @@ export const useStore = create<AppState>((set, get) => {
       set({ currentUser: null });
     },
 
-    createAccount: async (name, username, email, password, role) => {
-      const existingUser = get().users.find(u => u.email === email || u.username === username);
+    createAccount: async (name, email, password, role) => {
+      const existingUser = get().users.find(u => u.email === email);
       if (existingUser) {
-        return { success: false, message: 'Já existe um usuário com este e-mail ou nome de usuário.' };
+        return { success: false, message: 'Já existe um usuário com este e-mail.' };
       }
 
+      const username = email.split('@')[0];
       const newUser: User = {
         id: uuidv4(),
         name,
@@ -191,7 +192,7 @@ export const useStore = create<AppState>((set, get) => {
       };
 
       if (isSupabaseConfigured) {
-        const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { name, username } } });
+        const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { name } } });
         if (error) {
           console.error('Supabase sign-up failed:', error.message);
           return { success: false, message: error.message };

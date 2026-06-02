@@ -10,7 +10,6 @@ export function Login() {
   const resetPassword = useStore(s => s.resetPassword);
   const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
   const [name, setName] = useState('');
-  const [role, setRole] = useState<'user' | 'admin'>('user');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -37,7 +36,7 @@ export function Login() {
         } else if (password !== confirmPassword) {
           setError('As senhas não coincidem.');
         } else {
-          const result = await createAccount(name.trim(), email.trim(), password, role);
+          const result = await createAccount(name.trim(), email.trim(), password);
           if (!result.success) {
             setError(result.message);
           } else {
@@ -45,7 +44,6 @@ export function Login() {
             setMode('login');
             setPassword('');
             setConfirmPassword('');
-            setRole('user');
           }
         }
       } else if (mode === 'forgot') {
@@ -107,17 +105,6 @@ export function Login() {
                     className="w-full bg-gray-800 border border-gray-600 rounded-xl px-3.5 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                     required
                   />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-300 mb-1.5 block">Perfil</label>
-                  <select
-                    value={role}
-                    onChange={e => setRole(e.target.value as 'user' | 'admin')}
-                    className="w-full bg-gray-800 border border-gray-600 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                  >
-                    <option value="user">Usuário comum</option>
-                    <option value="admin">Administrador</option>
-                  </select>
                 </div>
               </>
             )}

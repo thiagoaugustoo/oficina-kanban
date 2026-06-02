@@ -4,7 +4,7 @@ import { User } from '../types';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
 import { Input, Select, Toggle } from './ui/Input';
-import { UserCheck, Plus, Edit2, Trash2, Shield, User as UserIcon, Mail } from 'lucide-react';
+import { UserCheck, Plus, Edit2, Trash2, Shield, User as UserIcon, Mail, DollarSign } from 'lucide-react';
 
 function UserFormModal({ isOpen, onClose, user }: {
   isOpen: boolean; onClose: () => void; user?: User;
@@ -103,7 +103,7 @@ function UserFormModal({ isOpen, onClose, user }: {
 
 
 export function UsersManager() {
-  const { users, currentUser, deleteUser } = useStore();
+  const { users, currentUser, deleteUser, updateUser } = useStore();
   const [showForm, setShowForm] = useState(false);
   const [editUser, setEditUser] = useState<User | undefined>();
 
@@ -122,6 +122,17 @@ export function UsersManager() {
       }
     } catch (error) {
       alert('Erro ao deletar usuário: ' + (error instanceof Error ? error.message : 'Erro desconhecido'));
+    }
+  };
+
+  const handleToggleEstimator = async (u: User) => {
+    try {
+      const result = await updateUser(u.id, { isEstimator: !u.isEstimator });
+      if (!result.success) {
+        alert('Erro ao atualizar: ' + result.message);
+      }
+    } catch (error) {
+      alert('Erro ao atualizar usuário: ' + (error instanceof Error ? error.message : 'Erro desconhecido'));
     }
   };
 
@@ -177,6 +188,11 @@ export function UsersManager() {
                     <UserIcon size={11} /> Usuário
                   </div>
                 )}
+                {u.isEstimator && (
+                  <div className="flex items-center gap-1 text-yellow-400 text-xs">
+                    <DollarSign size={11} /> Orçamentista
+                  </div>
+                )}
                 <div className={`text-xs ${u.active ? 'text-green-400' : 'text-gray-500'}`}>
                   {u.active ? 'Ativo' : 'Inativo'}
                 </div>
@@ -187,6 +203,17 @@ export function UsersManager() {
               <Button variant="ghost" size="sm" onClick={() => handleEdit(u)} className="flex-1 text-gray-300">
                 <Edit2 size={13} /> Editar
               </Button>
+              {currentUser?.role === 'admin' && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => handleToggleEstimator(u)} 
+                  className={`text-sm ${u.isEstimator ? 'text-yellow-400 hover:text-yellow-300 hover:bg-yellow-900/20' : 'text-gray-400 hover:text-yellow-300 hover:bg-yellow-900/20'}`}
+                  title={u.isEstimator ? 'Remover como orçamentista' : 'Definir como orçamentista'}
+                >
+                  <DollarSign size={13} />
+                </Button>
+              )}
               {u.id !== currentUser?.id && (
                 <Button variant="ghost" size="sm" onClick={() => handleDelete(u)} className="text-red-400 hover:text-red-300 hover:bg-red-900/20">
                   <Trash2 size={13} />

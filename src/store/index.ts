@@ -48,7 +48,7 @@ interface AppState {
   currentUser: User | null;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
-  createAccount: (name: string, email: string, password: string, role: 'user' | 'admin') => Promise<{ success: boolean; message: string }>;
+  createAccount: (name: string, email: string, password: string) => Promise<{ success: boolean; message: string }>;
   resetPassword: (email: string, newPassword?: string) => Promise<{ success: boolean; message: string }>;
 
   // Users
@@ -196,7 +196,7 @@ if (profile?.active) {
       set({ currentUser: null });
     },
 
-    createAccount: async (name, email, password, role) => {
+    createAccount: async (name, email, password) => {
       const existingUser = get().users.find(u => u.email === email);
       if (existingUser) {
         return { success: false, message: 'Já existe um usuário com este e-mail.' };
@@ -209,7 +209,8 @@ if (profile?.active) {
         username,
         email,
         password,
-        role,
+        role: 'user',
+        isEstimator: false,
         active: true,
         createdAt: new Date().toISOString(),
       };
@@ -394,7 +395,7 @@ if (profile?.active) {
     },
 
     updateArea: (id, data) => {
-      const areas = get().areas.map(a => a.id === id ? { ...a, ...data } : a);
+    const areas = get().areas.map(a => a.id === id ? { ...a, ...data } : a);
       set({ areas });
       saveState('ws_areas', areas);
       void upsertRemote('areas', areas.filter(a => a.id === id));

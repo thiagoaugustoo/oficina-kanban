@@ -4,18 +4,18 @@ import { User, Employee, Area, Vehicle, VehicleHistory, VehicleStatus } from '..
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 const DEFAULT_AREAS: Area[] = [
-  { id: 'area-1', name: 'Orçamento', order: 0, color: '#6366f1', createdAt: new Date().toISOString() },
-  { id: 'area-2', name: 'Desmontagem', order: 1, color: '#8b5cf6', createdAt: new Date().toISOString() },
-  { id: 'area-3', name: 'Mecânica', order: 2, color: '#ec4899', createdAt: new Date().toISOString() },
-  { id: 'area-4', name: 'Lavação', order: 3, color: '#14b8a6', createdAt: new Date().toISOString() },
-  { id: 'area-5', name: 'Lataria', order: 4, color: '#f59e0b', createdAt: new Date().toISOString() },
-  { id: 'area-6', name: 'Preparação', order: 5, color: '#f97316', createdAt: new Date().toISOString() },
-  { id: 'area-7', name: 'Pintura', order: 6, color: '#ef4444', createdAt: new Date().toISOString() },
-  { id: 'area-8', name: 'Polimento', order: 7, color: '#06b6d4', createdAt: new Date().toISOString() },
-  { id: 'area-9', name: 'Retoque', order: 8, color: '#84cc16', createdAt: new Date().toISOString() },
-  { id: 'area-10', name: 'Martelinho de Ouro', order: 9, color: '#eab308', createdAt: new Date().toISOString() },
-  { id: 'area-11', name: 'Retorno', order: 10, color: '#64748b', createdAt: new Date().toISOString() },
-  { id: 'area-12', name: 'Entregue', order: 11, color: '#22c55e', createdAt: new Date().toISOString() },
+  { id: 'area-1', name: 'Orçamento', displayOrder: 0, color: '#6366f1', createdAt: new Date().toISOString() },
+  { id: 'area-2', name: 'Desmontagem', displayOrder: 1, color: '#8b5cf6', createdAt: new Date().toISOString() },
+  { id: 'area-3', name: 'Mecânica', displayOrder: 2, color: '#ec4899', createdAt: new Date().toISOString() },
+  { id: 'area-4', name: 'Lavação', displayOrder: 3, color: '#14b8a6', createdAt: new Date().toISOString() },
+  { id: 'area-5', name: 'Lataria', displayOrder: 4, color: '#f59e0b', createdAt: new Date().toISOString() },
+  { id: 'area-6', name: 'Preparação', displayOrder: 5, color: '#f97316', createdAt: new Date().toISOString() },
+  { id: 'area-7', name: 'Pintura', displayOrder: 6, color: '#ef4444', createdAt: new Date().toISOString() },
+  { id: 'area-8', name: 'Polimento', displayOrder: 7, color: '#06b6d4', createdAt: new Date().toISOString() },
+  { id: 'area-9', name: 'Retoque', displayOrder: 8, color: '#84cc16', createdAt: new Date().toISOString() },
+  { id: 'area-10', name: 'Martelinho de Ouro', displayOrder: 9, color: '#eab308', createdAt: new Date().toISOString() },
+  { id: 'area-11', name: 'Retorno', displayOrder: 10, color: '#64748b', createdAt: new Date().toISOString() },
+  { id: 'area-12', name: 'Entregue', displayOrder: 11, color: '#22c55e', createdAt: new Date().toISOString() },
 ];
 
 const DEFAULT_EMPLOYEES: Employee[] = [

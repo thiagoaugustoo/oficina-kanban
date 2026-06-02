@@ -18,6 +18,7 @@ function EmployeeFormModal({ isOpen, onClose, employee }: {
     active: employee?.active ?? true,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (employee) {
@@ -45,7 +46,7 @@ function EmployeeFormModal({ isOpen, onClose, employee }: {
     setErrors(p => ({ ...p, [f]: '' }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs: Record<string, string> = {};
     if (!form.name.trim()) errs.name = 'Nome é obrigatório';
@@ -53,19 +54,65 @@ function EmployeeFormModal({ isOpen, onClose, employee }: {
     if (!form.areaId) errs.areaId = 'Área é obrigatória';
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
 
-    const payload = {
-      ...form,
-      areaId: form.areaId || undefined,
-      phone: form.phone || undefined,
-    };
+    setLoading(true);
+    try {
+      const payload = {
+        ...form,
+        areaId: form.areaId || undefined,
+        phone: form.phone || undefined,
+      };
 
-    if (employee) {
-      updateEmployee(employee.id, payload);
-    } else {
-      addEmployee(payload);
+      let result;
+      if (employee) {
+        result = await updateEmployee(employee.id, payload);
+      } else {
+        result = await addEmployee(payload);
+      }
+
+      if (result.success) {
+        onClose();
+      } else {
+        setErrors({ submit: result.message });
+      }
+    } catch (error) {
+      setErrors({ submit: error instanceof Error ? error.message : 'Erro ao salvar funcionário' });
+    } finally {
+      setLoading(false);
     }
-    onClose();
   };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={employee ? 'Editar Funcionário' : 'Novo Funcionário'} size="sm">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        {errors.submit && (
+          <div className="bg-red-900/20 border border-red-700 text-red-300 px-3 py-2 rounded-lg text-sm">
+            {errors.submit}
+          </div>
+        )}
+        <Input label="Nome *" value={form.name} onChange={e => set('name', e.target.value)} error={errors.name} placeholder="Roberto" disabled={loading} />
+        <Input label="Função *" value={form.role} onChange={e => set('role', e.target.value)} error={errors.role} placeholder="Mecânico" disabled={loading} />
+        <Select
+          label="Setor"
+          value={form.areaId}
+          onChange={e => set('areaId', e.target.value)}
+          error={errors.areaId}
+          disabled={loading}
+        >
+          <option value="">Selecionar setor...</option>
+          {areas.map(area => (
+            <option key={area.id} value={area.id}>{area.name}</option>
+          ))}
+        </Select>
+        <Input label="Telefone" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="(00) 00000-0000" disabled={loading} />
+        <Toggle label="Funcionário ativo" checked={form.active} onChange={v => set('active', v)} disabled={loading} />
+        <div className="flex gap-3 pt-2">
+          <Button variant="secondary" className="flex-1" type="button" onClick={onClose} disabled={loading}>Cancelar</Button>
+          <Button className="flex-1" type="submit" disabled={loading}>{loading ? 'Salvando...' : (employee ? 'Salvar' : 'Cadastrar')}</Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={employee ? 'Editar Funcionário' : 'Novo Funcionário'} size="sm">
@@ -125,9 +172,16 @@ export function EmployeesManager() {
     setShowForm(true);
   };
 
-  const handleDelete = (emp: Employee) => {
+  const handleDelete = async (emp: Employee) => {
     if (!window.confirm(`Excluir funcionário ${emp.name}?`)) return;
-    deleteEmployee(emp.id);
+    try {
+      const result = await deleteEmployee(emp.id);
+      if (!result.success) {
+        alert('Erro ao deletar: ' + result.message);
+      }
+    } catch (error) {
+      alert('Erro ao deletar funcionário: ' + (error instanceof Error ? error.message : 'Erro desconhecido'));
+    }
   };
 
   const handleClose = () => {

@@ -125,7 +125,6 @@ function UserFormModal({ isOpen, onClose, user }: {
       </form>
     </Modal>
   );
-}
 
 export function UsersManager() {
   const { users, currentUser, deleteUser } = useStore();

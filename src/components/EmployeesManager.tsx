@@ -139,7 +139,6 @@ function EmployeeFormModal({ isOpen, onClose, employee }: {
       </form>
     </Modal>
   );
-}
 
 export function EmployeesManager() {
   const { employees, deleteEmployee, areas } = useStore();

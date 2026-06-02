@@ -588,14 +588,17 @@ async function fetchRemoteTable<T>(table: string) {
 }
 
 async function upsertRemote<T>(table: string, rows: T[]) {
-  console.log('UPSERT', table, rows);
+  console.log('========== UPSERT ==========');
+  console.log('TABLE:', table);
+  console.log('ROWS:', rows);
 
   const { data, error } = await supabase
     .from(table)
     .upsert(rows, { onConflict: 'id' })
     .select();
 
-  console.log('UPSERT RESULT', data, error);
+  console.log('DATA:', data);
+  console.log('ERROR:', error);
 
   return {
     success: !error,
@@ -604,7 +607,9 @@ async function upsertRemote<T>(table: string, rows: T[]) {
 }
 
 async function deleteRemote(table: string, id: string) {
-  console.log('DELETE', table, id);
+  console.log('========== DELETE ==========');
+  console.log('TABLE:', table);
+  console.log('ID:', id);
 
   const { data, error } = await supabase
     .from(table)
@@ -612,7 +617,8 @@ async function deleteRemote(table: string, id: string) {
     .eq('id', id)
     .select();
 
-  console.log('DELETE RESULT', data, error);
+  console.log('DATA:', data);
+  console.log('ERROR:', error);
 
   return {
     success: !error,

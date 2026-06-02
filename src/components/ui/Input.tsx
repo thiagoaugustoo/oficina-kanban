@@ -79,24 +79,25 @@ interface ToggleProps {
   label?: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
+  disabled?: boolean;
 }
 
-export function Toggle({ label, checked, onChange }: ToggleProps) {
+export function Toggle({ label, checked, onChange, disabled }: ToggleProps) {
   return (
-    <label className="flex items-center gap-3 cursor-pointer select-none">
+    <label className={cn('flex items-center gap-3 select-none', !disabled && 'cursor-pointer')}>
       <div
         className={cn(
           'relative w-11 h-6 rounded-full transition-colors duration-200',
-          checked ? 'bg-indigo-600' : 'bg-gray-600'
+          disabled ? 'bg-gray-700 opacity-50' : (checked ? 'bg-indigo-600' : 'bg-gray-600')
         )}
-        onClick={() => onChange(!checked)}
+        onClick={() => !disabled && onChange(!checked)}
       >
         <div className={cn(
           'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200',
           checked ? 'translate-x-5' : 'translate-x-0'
         )} />
       </div>
-      {label && <span className="text-sm text-gray-300">{label}</span>}
+      {label && <span className={cn('text-sm', disabled ? 'text-gray-500' : 'text-gray-300')}>{label}</span>}
     </label>
   );
 }

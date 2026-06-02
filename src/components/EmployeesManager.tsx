@@ -4,7 +4,7 @@ import { Employee } from '../types';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
 import { Input, Select, Toggle } from './ui/Input';
-import { Users, Plus, Edit2, Trash2, Phone, Briefcase, XCircle } from 'lucide-react';
+import { Users, Plus, Edit2, Trash2, Phone, Briefcase, XCircle, CheckCircle } from 'lucide-react';
 
 function EmployeeFormModal({ isOpen, onClose, employee }: {
   isOpen: boolean; onClose: () => void; employee?: Employee;

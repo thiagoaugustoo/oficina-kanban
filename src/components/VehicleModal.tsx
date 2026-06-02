@@ -15,7 +15,7 @@ interface VehicleModalProps {
 
 export function VehicleModal({ isOpen, onClose, vehicle, defaultAreaId }: VehicleModalProps) {
   const { areas, currentUser, users, addVehicle, updateVehicle } = useStore();
-  const sortedAreas = [...areas].sort((a, b) => a.order - b.order);
+  const sortedAreas = [...areas].sort((a, b) => a.displayOrder - b.displayOrder);
   const activeEstimators = users.filter(u => u.active && u.isEstimator);
 
   const [form, setForm] = useState({

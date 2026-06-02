@@ -120,7 +120,7 @@ export function KanbanBoard() {
   );
 
   const sortedAreas = useMemo(() =>
-    [...areas].sort((a, b) => a.order - b.order),
+    [...areas].sort((a, b) => a.displayOrder - b.displayOrder),
     [areas]
   );
 
@@ -357,6 +357,7 @@ export function KanbanBoard() {
                 area={area}
                 vehicles={getAreaVehicles(area.id)}
                 onVehicleClick={handleVehicleClick}
+                onMoveVehicle={handleMoveButton}
                 onAddVehicle={handleAddVehicle}
               />
             ))}

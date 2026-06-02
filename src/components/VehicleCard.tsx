@@ -12,7 +12,7 @@ interface VehicleCardProps {
   isDragging?: boolean;
 }
 
-export function VehicleCard({ vehicle, onClick, isDragging }: VehicleCardProps) {
+export function VehicleCard({ vehicle, onClick, onMoveClick, isDragging }: VehicleCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging: isSortDragging } = useSortable({
     id: vehicle.id,
     data: { vehicle },
@@ -32,6 +32,11 @@ export function VehicleCard({ vehicle, onClick, isDragging }: VehicleCardProps) 
   const deadlineLabel = getDeadlineLabel(deadlineStatus);
   const isOverdue = deadlineStatus === 'overdue';
   const isWarning = deadlineStatus === 'warning';
+
+  const handleMoveClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onMoveClick?.(vehicle);
+  };
 
   return (
     <div
@@ -98,6 +103,18 @@ export function VehicleCard({ vehicle, onClick, isDragging }: VehicleCardProps) 
               </span>
             )}
           </div>
+        )}
+
+        {/* Move button */}
+        {onMoveClick && (
+          <button
+            onClick={handleMoveClick}
+            className="mt-3 w-full flex items-center justify-center gap-2 bg-gray-700 hover:bg-indigo-600 transition-colors px-2.5 py-2 rounded-lg text-xs font-medium text-gray-200 hover:text-white group"
+            title="Mover para outro setor"
+          >
+            <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
+            <span>Mover</span>
+          </button>
         )}
       </div>
     </div>

@@ -15,7 +15,8 @@ const DEFAULT_AREAS: Area[] = [
   { id: 'area-9', name: 'Retoque', displayOrder: 8, color: '#84cc16', createdAt: new Date().toISOString() },
   { id: 'area-10', name: 'Martelinho de Ouro', displayOrder: 9, color: '#eab308', createdAt: new Date().toISOString() },
   { id: 'area-11', name: 'Retorno', displayOrder: 10, color: '#64748b', createdAt: new Date().toISOString() },
-  { id: 'area-12', name: 'Entregue', displayOrder: 11, color: '#22c55e', createdAt: new Date().toISOString() },
+  { id: 'area-12', name: 'Pronto para Entrega', displayOrder: 11, color: '#06b6d4', createdAt: new Date().toISOString() },
+  { id: 'area-13', name: 'Entregue', displayOrder: 12, color: '#22c55e', createdAt: new Date().toISOString() },
 ];
 
 const DEFAULT_EMPLOYEES: Employee[] = [
@@ -474,14 +475,18 @@ if (profile?.active) {
       const vehicle = get().vehicles.find(v => v.id === vehicleId);
       if (!vehicle) return;
 
+      const readyArea = get().areas.find(a => a.name === 'Pronto para Entrega');
       const deliveredArea = get().areas.find(a => a.name === 'Entregue');
-      const isCompleting = deliveredArea && toAreaId === deliveredArea.id;
+      
+      // Se moveu para "Pronto para Entrega", automaticamente move para "Entregue"
+      const finalAreaId = (readyArea && toAreaId === readyArea.id) ? (deliveredArea?.id || toAreaId) : toAreaId;
+      const isCompleting = deliveredArea && finalAreaId === deliveredArea.id;
 
       const vehicles = get().vehicles.map(v =>
         v.id === vehicleId
           ? {
               ...v,
-              currentAreaId: toAreaId,
+              currentAreaId: finalAreaId,
               updatedAt: now,
               status: isCompleting ? ('completed' as VehicleStatus) : v.status,
               completedAt: isCompleting ? now : v.completedAt,
@@ -497,7 +502,7 @@ if (profile?.active) {
         vehicleId,
         type: isCompleting ? 'completed' : 'moved',
         fromAreaId: vehicle.currentAreaId,
-        toAreaId,
+        toAreaId: finalAreaId,
         employeeId,
         userId: get().currentUser?.id || '',
         timestamp: now,

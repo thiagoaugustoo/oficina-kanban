@@ -14,9 +14,9 @@ interface VehicleModalProps {
 }
 
 export function VehicleModal({ isOpen, onClose, vehicle, defaultAreaId }: VehicleModalProps) {
-  const { areas, currentUser, employees, addVehicle, updateVehicle } = useStore();
+  const { areas, currentUser, users, addVehicle, updateVehicle } = useStore();
   const sortedAreas = [...areas].sort((a, b) => a.order - b.order);
-  const activeEstimators = employees.filter(e => e.active && e.isEstimator);
+  const activeEstimators = users.filter(u => u.active && u.isEstimator);
 
   const [form, setForm] = useState({
     plate: '',
@@ -67,7 +67,6 @@ export function VehicleModal({ isOpen, onClose, vehicle, defaultAreaId }: Vehicl
   const validate = () => {
     const errs: Record<string, string> = {};
     if (!form.plate.trim()) errs.plate = 'Placa é obrigatória';
-    if (!form.brand.trim()) errs.brand = 'Marca é obrigatória';
     if (!form.model.trim()) errs.model = 'Modelo é obrigatório';
     if (!form.entryDate) errs.entryDate = 'Data de entrada é obrigatória';
     if (!form.estimatorId.trim()) errs.estimatorId = 'Orçamentista é obrigatório';
@@ -143,7 +142,7 @@ export function VehicleModal({ isOpen, onClose, vehicle, defaultAreaId }: Vehicl
 
         <div className="grid grid-cols-2 gap-3">
           <Input
-            label="Marca *"
+            label="Marca"
             value={form.brand}
             onChange={e => set('brand', e.target.value)}
             placeholder="Chevrolet"

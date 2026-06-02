@@ -7,6 +7,7 @@ export interface User {
   email: string;
   password: string;
   role: UserRole;
+  isEstimator?: boolean;
   createdAt: string;
   active: boolean;
 }

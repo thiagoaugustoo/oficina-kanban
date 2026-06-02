@@ -30,10 +30,11 @@ interface KanbanColumnProps {
   area: Area;
   vehicles: Vehicle[];
   onVehicleClick: (v: Vehicle) => void;
+  onMoveVehicle: (v: Vehicle) => void;
   onAddVehicle: (areaId: string) => void;
 }
 
-function KanbanColumn({ area, vehicles, onVehicleClick, onAddVehicle }: KanbanColumnProps) {
+function KanbanColumn({ area, vehicles, onVehicleClick, onMoveVehicle, onAddVehicle }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: area.id });
   const sorted = [...vehicles].sort((a, b) => getPriorityScore(a) - getPriorityScore(b));
   const isDelivered = area.name === 'Entregue';
@@ -76,6 +77,7 @@ function KanbanColumn({ area, vehicles, onVehicleClick, onAddVehicle }: KanbanCo
               key={v.id}
               vehicle={v}
               onClick={() => onVehicleClick(v)}
+              onMoveClick={onMoveVehicle}
             />
           ))}
         </SortableContext>
@@ -114,7 +116,7 @@ export function KanbanBoard() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 10 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 12 } })
   );
 
   const sortedAreas = useMemo(() =>
@@ -198,6 +200,12 @@ export function KanbanBoard() {
   const handleVehicleClick = (v: Vehicle) => {
     setSelectedVehicle(v);
     setShowDetail(true);
+  };
+
+  const handleMoveButton = (vehicle: Vehicle) => {
+    setMoveVehicle(vehicle);
+    setMoveToArea(null);
+    setShowMove(true);
   };
 
   const handleAddVehicle = (areaId: string) => {
@@ -341,6 +349,7 @@ export function KanbanBoard() {
             collisionDetection={rectIntersection}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
+            onDragCancel={() => setActiveVehicle(null)}
           >
             {sortedAreas.map(area => (
               <KanbanColumn

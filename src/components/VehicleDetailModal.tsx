@@ -18,7 +18,7 @@ interface VehicleDetailModalProps {
 }
 
 export function VehicleDetailModal({ isOpen, onClose, vehicle }: VehicleDetailModalProps) {
-  const { areas, employees, currentUser, reopenVehicle, getVehicleHistory } = useStore();
+  const { areas, employees, users, currentUser, reopenVehicle, getVehicleHistory } = useStore();
   const [showEdit, setShowEdit] = useState(false);
 
   if (!vehicle) return null;
@@ -35,12 +35,12 @@ export function VehicleDetailModal({ isOpen, onClose, vehicle }: VehicleDetailMo
   } as const;
 
   const getAreaName = (id?: string) => areas.find(a => a.id === id)?.name || '-';
-  const getEmployeeName = (id?: string) => {
+  const getEstimatorName = (id?: string) => {
     if (!id) return 'Não informado';
-    return employees.find(e => e.id === id)?.name || 'Não informado';
+    return users.find(u => u.id === id)?.name || employees.find(e => e.id === id)?.name || 'Não informado';
   };
 
-  const estimatorName = getEmployeeName(vehicle.estimatorId);
+  const estimatorName = getEstimatorName(vehicle.estimatorId);
 
   const workedEmployees = [...new Set(
     vHistory

@@ -3,11 +3,12 @@ import { CSS } from '@dnd-kit/utilities';
 import { useStore } from '../store';
 import { Vehicle } from '../types';
 import { getDeadlineStatus, getDeadlineColor, getDeadlineLabel, formatDate } from '../utils/deadline';
-import { User, Calendar, AlertTriangle } from 'lucide-react';
+import { User, Calendar, AlertTriangle, ArrowRight } from 'lucide-react';
 
 interface VehicleCardProps {
   vehicle: Vehicle;
   onClick: () => void;
+  onMoveClick?: (vehicle: Vehicle) => void;
   isDragging?: boolean;
 }
 
@@ -16,8 +17,8 @@ export function VehicleCard({ vehicle, onClick, isDragging }: VehicleCardProps) 
     id: vehicle.id,
     data: { vehicle },
   });
-  const { employees } = useStore();
-  const estimator = employees.find(e => e.id === vehicle.estimatorId);
+  const { employees, users } = useStore();
+  const estimator = users.find(u => u.id === vehicle.estimatorId) || employees.find(e => e.id === vehicle.estimatorId);
   const estimatorLabel = estimator ? `${estimator.name}${estimator.role ? ` · ${estimator.role}` : ''}` : vehicle.estimatorId;
 
   const style = {

@@ -4,7 +4,7 @@ import { Employee } from '../types';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
 import { Input, Select, Toggle } from './ui/Input';
-import { Users, Plus, Edit2, Trash2, Phone, Briefcase, CheckCircle, XCircle } from 'lucide-react';
+import { Users, Plus, Edit2, Trash2, Phone, Briefcase, XCircle } from 'lucide-react';
 
 function EmployeeFormModal({ isOpen, onClose, employee }: {
   isOpen: boolean; onClose: () => void; employee?: Employee;
@@ -14,7 +14,6 @@ function EmployeeFormModal({ isOpen, onClose, employee }: {
     name: employee?.name || '',
     role: employee?.role || '',
     areaId: employee?.areaId || '',
-    isEstimator: employee?.isEstimator || false,
     phone: employee?.phone || '',
     active: employee?.active ?? true,
   });
@@ -26,7 +25,6 @@ function EmployeeFormModal({ isOpen, onClose, employee }: {
         name: employee.name,
         role: employee.role,
         areaId: employee.areaId || '',
-        isEstimator: employee.isEstimator || false,
         phone: employee.phone || '',
         active: employee.active,
       });
@@ -35,7 +33,6 @@ function EmployeeFormModal({ isOpen, onClose, employee }: {
         name: '',
         role: '',
         areaId: '',
-        isEstimator: false,
         phone: '',
         active: true,
       });
@@ -53,7 +50,7 @@ function EmployeeFormModal({ isOpen, onClose, employee }: {
     const errs: Record<string, string> = {};
     if (!form.name.trim()) errs.name = 'Nome é obrigatório';
     if (!form.role.trim()) errs.role = 'Função é obrigatória';
-    if (!form.isEstimator && !form.areaId) errs.areaId = 'Área é obrigatória';
+    if (!form.areaId) errs.areaId = 'Área é obrigatória';
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
 
     const payload = {
@@ -79,15 +76,13 @@ function EmployeeFormModal({ isOpen, onClose, employee }: {
           label="Setor"
           value={form.areaId}
           onChange={e => set('areaId', e.target.value)}
-          disabled={form.isEstimator}
-          error={!form.isEstimator ? errors.areaId : undefined}
+          error={errors.areaId}
         >
           <option value="">Selecionar setor...</option>
           {areas.map(area => (
             <option key={area.id} value={area.id}>{area.name}</option>
           ))}
         </Select>
-        <Toggle label="Orçamentista" checked={form.isEstimator} onChange={v => set('isEstimator', v)} />
         <Input label="Telefone" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="(00) 00000-0000" />
         <Toggle label="Funcionário ativo" checked={form.active} onChange={v => set('active', v)} />
         <div className="flex gap-3 pt-2">
@@ -106,28 +101,24 @@ export function EmployeesManager() {
 
   const active = employees.filter(e => e.active);
   const inactive = employees.filter(e => !e.active);
-  const activeEstimators = active.filter(e => e.isEstimator);
-  const regularEmployees = active.filter(e => !e.isEstimator);
 
   const areaGroups = areas
     .map(area => ({
       areaId: area.id,
       areaName: area.name,
-      employees: regularEmployees.filter(emp => emp.areaId === area.id),
+      employees: active.filter(emp => emp.areaId === area.id),
     }))
     .filter(group => group.employees.length > 0);
 
   const unassignedGroup = {
     areaId: 'unassigned',
     areaName: 'Sem Área',
-    employees: regularEmployees.filter(emp => !emp.areaId || !areas.some(a => a.id === emp.areaId)),
+    employees: active.filter(emp => !emp.areaId || !areas.some(a => a.id === emp.areaId)),
   };
 
   const visibleAreaGroups = unassignedGroup.employees.length > 0
     ? [...areaGroups, unassignedGroup]
     : areaGroups;
-
-  const getAreaLabel = (areaId?: string) => areas.find(a => a.id === areaId)?.name || 'Sem Área';
 
   const handleEdit = (emp: Employee) => {
     setEditEmployee(emp);
@@ -158,52 +149,12 @@ export function EmployeesManager() {
         </Button>
       </div>
 
-      {activeEstimators.length > 0 && (
-        <div className="mb-6">
-          <p className="text-xs text-gray-500 uppercase tracking-wider font-medium mb-3">Orçamentistas</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {activeEstimators.map(emp => (
-              <div key={emp.id} className="bg-gray-800 border border-gray-700 rounded-xl p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-indigo-700 flex items-center justify-center text-white font-bold text-sm">
-                      {emp.name[0]}
-                    </div>
-                    <div>
-                      <p className="text-white font-semibold">{emp.name}</p>
-                      <div className="flex items-center gap-1 text-gray-400 text-xs">
-                        <Briefcase size={10} /> {emp.role} • Orçamentista
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <CheckCircle size={14} className="text-green-400" />
-                  </div>
-                </div>
-                {emp.phone && (
-                  <div className="flex items-center gap-1.5 text-gray-400 text-xs mb-3">
-                    <Phone size={11} /> {emp.phone}
-                  </div>
-                )}
-                <div className="flex gap-2">
-                  <Button variant="ghost" size="sm" onClick={() => handleEdit(emp)} className="flex-1 text-gray-300">
-                    <Edit2 size={13} /> Editar
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleDelete(emp)} className="text-red-400 hover:text-red-300 hover:bg-red-900/20">
-                    <Trash2 size={13} />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {visibleAreaGroups.length > 0 && (
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4 gap-3">
             <p className="text-xs text-gray-500 uppercase tracking-wider font-medium">Por área</p>
-            <span className="text-xs text-gray-500">{regularEmployees.length} funcionário(s)</span>
+            <span className="text-xs text-gray-500">{active.length} funcionário(s)</span>
           </div>
           <div className="space-y-6">
             {visibleAreaGroups.map(group => (

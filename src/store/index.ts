@@ -53,15 +53,15 @@ interface AppState {
 
   // Users
   users: User[];
-  addUser: (user: Omit<User, 'id' | 'createdAt'>) => void;
-  updateUser: (id: string, data: Partial<User>) => void;
-  deleteUser: (id: string) => void;
+  addUser: (user: Omit<User, 'id' | 'createdAt'>) => Promise<{ success: boolean; message: string }>;
+  updateUser: (id: string, data: Partial<User>) => Promise<{ success: boolean; message: string }>;
+  deleteUser: (id: string) => Promise<{ success: boolean; message: string }>;
 
   // Employees
   employees: Employee[];
-  addEmployee: (emp: Omit<Employee, 'id' | 'createdAt'>) => void;
-  updateEmployee: (id: string, data: Partial<Employee>) => void;
-  deleteEmployee: (id: string) => void;
+  addEmployee: (emp: Omit<Employee, 'id' | 'createdAt'>) => Promise<{ success: boolean; message: string }>;
+  updateEmployee: (id: string, data: Partial<Employee>) => Promise<{ success: boolean; message: string }>;
+  deleteEmployee: (id: string) => Promise<{ success: boolean; message: string }>;
 
   // Areas
   areas: Area[];
@@ -271,52 +271,118 @@ if (profile?.active) {
       return { success: true, message: 'Senha redefinida com sucesso.' };
     },
 
-    addUser: (userData) => {
-      const newUser: User = { ...userData, id: uuidv4(), createdAt: new Date().toISOString() };
-      const users = [...get().users, newUser];
-      set({ users });
-      saveState('ws_users', users);
-      void upsertRemote('users', [newUser]);
-    },
-
-    updateUser: (id, data) => {
-      const users = get().users.map(u => u.id === id ? { ...u, ...data } : u);
-      set({ users });
-      saveState('ws_users', users);
-      // Update currentUser if editing self
-      if (get().currentUser?.id === id) {
-        set({ currentUser: { ...get().currentUser!, ...data } });
+    addUser: async (userData) => {
+      try {
+        const newUser: User = { ...userData, id: uuidv4(), createdAt: new Date().toISOString() };
+        const users = [...get().users, newUser];
+        set({ users });
+        saveState('ws_users', users);
+        
+        const result = await upsertRemote('users', [newUser]);
+        if (!result.success) {
+          throw new Error(result.error || 'Erro ao sincronizar com Supabase');
+        }
+        
+        return { success: true, message: 'Usuário criado com sucesso' };
+      } catch (error) {
+        console.error('Erro ao adicionar usuário:', error);
+        return { success: false, message: error instanceof Error ? error.message : 'Erro ao adicionar usuário' };
       }
-      void upsertRemote('users', users.filter(u => u.id === id));
     },
 
-    deleteUser: (id) => {
-      const users = get().users.filter(u => u.id !== id);
-      set({ users });
-      saveState('ws_users', users);
-      void deleteRemote('users', id);
+    updateUser: async (id, data) => {
+      try {
+        const users = get().users.map(u => u.id === id ? { ...u, ...data } : u);
+        set({ users });
+        saveState('ws_users', users);
+        
+        if (get().currentUser?.id === id) {
+          set({ currentUser: { ...get().currentUser!, ...data } });
+        }
+        
+        const result = await upsertRemote('users', users.filter(u => u.id === id));
+        if (!result.success) {
+          throw new Error(result.error || 'Erro ao sincronizar com Supabase');
+        }
+        
+        return { success: true, message: 'Usuário atualizado com sucesso' };
+      } catch (error) {
+        console.error('Erro ao atualizar usuário:', error);
+        return { success: false, message: error instanceof Error ? error.message : 'Erro ao atualizar usuário' };
+      }
     },
 
-    addEmployee: (empData) => {
-      const newEmp: Employee = { ...empData, id: uuidv4(), createdAt: new Date().toISOString() };
-      const employees = [...get().employees, newEmp];
-      set({ employees });
-      saveState('ws_employees', employees);
-      void upsertRemote('employees', [newEmp]);
+    deleteUser: async (id) => {
+      try {
+        const users = get().users.filter(u => u.id !== id);
+        set({ users });
+        saveState('ws_users', users);
+        
+        const result = await deleteRemote('users', id);
+        if (!result.success) {
+          throw new Error(result.error || 'Erro ao sincronizar com Supabase');
+        }
+        
+        return { success: true, message: 'Usuário deletado com sucesso' };
+      } catch (error) {
+        console.error('Erro ao deletar usuário:', error);
+        return { success: false, message: error instanceof Error ? error.message : 'Erro ao deletar usuário' };
+      }
     },
 
-    updateEmployee: (id, data) => {
-      const employees = get().employees.map(e => e.id === id ? { ...e, ...data } : e);
-      set({ employees });
-      saveState('ws_employees', employees);
-      void upsertRemote('employees', employees.filter(e => e.id === id));
+    addEmployee: async (empData) => {
+      try {
+        const newEmp: Employee = { ...empData, id: uuidv4(), createdAt: new Date().toISOString() };
+        const employees = [...get().employees, newEmp];
+        set({ employees });
+        saveState('ws_employees', employees);
+        
+        const result = await upsertRemote('employees', [newEmp]);
+        if (!result.success) {
+          throw new Error(result.error || 'Erro ao sincronizar com Supabase');
+        }
+        
+        return { success: true, message: 'Funcionário criado com sucesso' };
+      } catch (error) {
+        console.error('Erro ao adicionar funcionário:', error);
+        return { success: false, message: error instanceof Error ? error.message : 'Erro ao adicionar funcionário' };
+      }
     },
 
-    deleteEmployee: (id) => {
-      const employees = get().employees.filter(e => e.id !== id);
-      set({ employees });
-      saveState('ws_employees', employees);
-      void deleteRemote('employees', id);
+    updateEmployee: async (id, data) => {
+      try {
+        const employees = get().employees.map(e => e.id === id ? { ...e, ...data } : e);
+        set({ employees });
+        saveState('ws_employees', employees);
+        
+        const result = await upsertRemote('employees', employees.filter(e => e.id === id));
+        if (!result.success) {
+          throw new Error(result.error || 'Erro ao sincronizar com Supabase');
+        }
+        
+        return { success: true, message: 'Funcionário atualizado com sucesso' };
+      } catch (error) {
+        console.error('Erro ao atualizar funcionário:', error);
+        return { success: false, message: error instanceof Error ? error.message : 'Erro ao atualizar funcionário' };
+      }
+    },
+
+    deleteEmployee: async (id) => {
+      try {
+        const employees = get().employees.filter(e => e.id !== id);
+        set({ employees });
+        saveState('ws_employees', employees);
+        
+        const result = await deleteRemote('employees', id);
+        if (!result.success) {
+          throw new Error(result.error || 'Erro ao sincronizar com Supabase');
+        }
+        
+        return { success: true, message: 'Funcionário deletado com sucesso' };
+      } catch (error) {
+        console.error('Erro ao deletar funcionário:', error);
+        return { success: false, message: error instanceof Error ? error.message : 'Erro ao deletar funcionário' };
+      }
     },
 
     addArea: (areaData) => {
@@ -515,19 +581,41 @@ async function fetchRemoteTable<T>(table: string) {
   return data;
 }
 
-async function upsertRemote<T>(table: string, rows: T[]) {
-  if (!isSupabaseConfigured || rows.length === 0) return;
-  const { error } = await supabase.from<T>(table).upsert(rows, { onConflict: 'id' });
-  if (error) {
-    console.error(`Supabase upsert failed for ${table}:`, error.message);
+async function upsertRemote<T>(table: string, rows: T[]): Promise<{ success: boolean; error?: string }> {
+  if (!isSupabaseConfigured || rows.length === 0) {
+    return { success: !isSupabaseConfigured, error: !isSupabaseConfigured ? undefined : 'Supabase não configurado' };
+  }
+  
+  try {
+    const { error } = await supabase.from<T>(table).upsert(rows, { onConflict: 'id' });
+    if (error) {
+      console.error(`Supabase upsert failed for ${table}:`, error.message);
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Erro desconhecido';
+    console.error(`Error upserting to ${table}:`, message);
+    return { success: false, error: message };
   }
 }
 
-async function deleteRemote(table: string, id: string) {
-  if (!isSupabaseConfigured) return;
-  const { error } = await supabase.from(table).delete().eq('id', id);
-  if (error) {
-    console.error(`Supabase delete failed for ${table}:`, error.message);
+async function deleteRemote(table: string, id: string): Promise<{ success: boolean; error?: string }> {
+  if (!isSupabaseConfigured) {
+    return { success: true };
+  }
+  
+  try {
+    const { error } = await supabase.from(table).delete().eq('id', id);
+    if (error) {
+      console.error(`Supabase delete failed for ${table}:`, error.message);
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Erro desconhecido';
+    console.error(`Error deleting from ${table}:`, message);
+    return { success: false, error: message };
   }
 }
 

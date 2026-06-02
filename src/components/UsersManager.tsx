@@ -15,17 +15,17 @@ function UserFormModal({ isOpen, onClose, user }: {
     email: user?.email || '',
     password: user ? '' : '',
     role: user?.role || 'user',
-    isEstimator: user?.isEstimator || false,
     active: user?.active ?? true,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
 
   const set = (f: string, v: string | boolean) => {
     setForm(p => ({ ...p, [f]: v }));
     setErrors(p => ({ ...p, [f]: '' }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs: Record<string, string> = {};
     if (!form.name.trim()) errs.name = 'Nome é obrigatório';
@@ -33,28 +33,72 @@ function UserFormModal({ isOpen, onClose, user }: {
     if (!user && !form.password.trim()) errs.password = 'Senha é obrigatória';
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
 
-    if (user) {
-      const data: Partial<User> = {
-        name: form.name,
-        email: form.email,
-        role: form.role as 'admin' | 'user',
-        isEstimator: form.isEstimator,
-        active: form.active,
-      };
-      if (form.password.trim()) data.password = form.password;
-      updateUser(user.id, data);
-    } else {
-      addUser({
-        name: form.name,
-        email: form.email,
-        password: form.password,
-        role: form.role as 'admin' | 'user',
-        isEstimator: form.isEstimator,
-        active: form.active,
-      });
+    setLoading(true);
+    try {
+      let result;
+      if (user) {
+        const data: Partial<User> = {
+          name: form.name,
+          email: form.email,
+          role: form.role as 'admin' | 'user',
+          active: form.active,
+        };
+        if (form.password.trim()) data.password = form.password;
+        result = await updateUser(user.id, data);
+      } else {
+        result = await addUser({
+          name: form.name,
+          email: form.email,
+          password: form.password,
+          role: form.role as 'admin' | 'user',
+          active: form.active,
+        });
+      }
+
+      if (result.success) {
+        onClose();
+      } else {
+        setErrors({ submit: result.message });
+      }
+    } catch (error) {
+      setErrors({ submit: error instanceof Error ? error.message : 'Erro ao salvar usuário' });
+    } finally {
+      setLoading(false);
     }
-    onClose();
   };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={user ? 'Editar Usuário' : 'Novo Usuário'} size="sm">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        {errors.submit && (
+          <div className="bg-red-900/20 border border-red-700 text-red-300 px-3 py-2 rounded-lg text-sm">
+            {errors.submit}
+          </div>
+        )}
+        <Input label="Nome *" value={form.name} onChange={e => set('name', e.target.value)} error={errors.name} placeholder="João Silva" disabled={loading} />
+        <Input label="E-mail *" type="email" value={form.email} onChange={e => set('email', e.target.value)} error={errors.email} placeholder="joao@oficina.com" disabled={loading} />
+        <Input
+          label={user ? 'Nova Senha (deixe em branco para manter)' : 'Senha *'}
+          type="password"
+          value={form.password}
+          onChange={e => set('password', e.target.value)}
+          error={errors.password}
+          placeholder="••••••••"
+          disabled={loading}
+        />
+        <Select label="Perfil *" value={form.role} onChange={e => set('role', e.target.value)} disabled={loading}>
+          <option value="user">Usuário</option>
+          <option value="admin">Administrador</option>
+        </Select>
+        <Toggle label="Usuário ativo" checked={form.active} onChange={v => set('active', v)} disabled={loading} />
+        <div className="flex gap-3 pt-2">
+          <Button variant="secondary" className="flex-1" type="button" onClick={onClose} disabled={loading}>Cancelar</Button>
+          <Button className="flex-1" type="submit" disabled={loading}>{loading ? 'Salvando...' : (user ? 'Salvar' : 'Criar')}</Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={user ? 'Editar Usuário' : 'Novo Usuário'} size="sm">
@@ -73,7 +117,6 @@ function UserFormModal({ isOpen, onClose, user }: {
           <option value="user">Usuário</option>
           <option value="admin">Administrador</option>
         </Select>
-        <Toggle label="Orçamentista" checked={form.isEstimator} onChange={v => set('isEstimator', v)} />
         <Toggle label="Usuário ativo" checked={form.active} onChange={v => set('active', v)} />
         <div className="flex gap-3 pt-2">
           <Button variant="secondary" className="flex-1" type="button" onClick={onClose}>Cancelar</Button>
@@ -94,10 +137,17 @@ export function UsersManager() {
     setShowForm(true);
   };
 
-  const handleDelete = (u: User) => {
+  const handleDelete = async (u: User) => {
     if (u.id === currentUser?.id) { alert('Você não pode excluir seu próprio usuário.'); return; }
     if (!window.confirm(`Excluir usuário ${u.name}?`)) return;
-    deleteUser(u.id);
+    try {
+      const result = await deleteUser(u.id);
+      if (!result.success) {
+        alert('Erro ao deletar: ' + result.message);
+      }
+    } catch (error) {
+      alert('Erro ao deletar usuário: ' + (error instanceof Error ? error.message : 'Erro desconhecido'));
+    }
   };
 
   const handleClose = () => {
@@ -140,11 +190,6 @@ export function UsersManager() {
                   <div className="flex items-center gap-1 text-gray-400 text-xs">
                     <Mail size={10} /> {u.email}
                   </div>
-                  {u.isEstimator && (
-                    <div className="inline-flex items-center gap-1 mt-2 text-xs text-indigo-300 bg-indigo-950/40 px-2 py-1 rounded-full">
-                      <UserIcon size={10} /> Orçamentista
-                    </div>
-                  )}
                 </div>
               </div>
               <div className="flex flex-col items-end gap-1">

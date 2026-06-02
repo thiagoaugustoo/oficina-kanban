@@ -14,7 +14,9 @@ export default function App() {
   const { currentUser, activeView } = useStore();
 
   useEffect(() => {
-    void initSupabaseSync();
+    initSupabaseSync().catch((error) => {
+      console.error('Erro ao sincronizar com Supabase:', error);
+    });
   }, []);
 
   if (!currentUser) {

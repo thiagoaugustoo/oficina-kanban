@@ -1,137 +1,189 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useStore } from '../store';
 import { Vehicle } from '../types';
-import { getDeadlineStatus, getDeadlineColor, getDeadlineLabel, formatDate } from '../utils/deadline';
-import { User, Calendar, AlertTriangle, ArrowRight } from 'lucide-react';
+import { useStore } from '../store';
+import { 
+  Clock, AlertCircle, User, Calendar, GripVertical, 
+  ArrowRight, Check, CheckCircle2 
+} from 'lucide-react';
+import { formatDate, formatDuration, getDeadlineStatus } from '../utils/deadline';
 
 interface VehicleCardProps {
   vehicle: Vehicle;
   onClick: () => void;
-  onMoveClick?: (vehicle: Vehicle) => void;
-  isDragging?: boolean;
+  onMoveClick: (vehicle: Vehicle) => void;
 }
 
-export function VehicleCard({ vehicle, onClick, onMoveClick, isDragging }: VehicleCardProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging: isSortDragging } = useSortable({
-    id: vehicle.id,
-    data: { vehicle },
+export function VehicleCard({ vehicle, onClick, onMoveClick }: VehicleCardProps) {
+  const { areas, employees, users, completeVehicle, currentUser } = useStore();
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ 
+    id: vehicle.id 
   });
-  const { employees, users } = useStore();
-  const estimator = users.find(u => u.id === vehicle.estimatorId) || employees.find(e => e.id === vehicle.estimatorId);
-  const estimatorLabel = estimator ? `${estimator.name}${estimator.role ? ` · ${estimator.role}` : ''}` : vehicle.estimatorId;
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isSortDragging ? 0.3 : 1,
+    opacity: isDragging ? 0.5 : 1,
   };
 
-  const deadlineStatus = getDeadlineStatus(vehicle);
-  const deadlineColor = getDeadlineColor(deadlineStatus);
-  const deadlineLabel = getDeadlineLabel(deadlineStatus);
-  const isOverdue = deadlineStatus === 'overdue';
-  const isWarning = deadlineStatus === 'warning';
+  const area = areas.find(a => a.id === vehicle.currentAreaId);
+  const deadlineStatus = vehicle.deadline ? getDeadlineStatus(vehicle.deadline) : null;
+  const estimatorName = users.find(u => u.id === vehicle.estimatorId)?.name || 
+                       employees.find(e => e.id === vehicle.estimatorId)?.name || 
+                       'N/A';
 
-  const handleMoveClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onMoveClick?.(vehicle);
+  // Verificar se está na área "Entregue"
+  const deliveredArea = areas.find(a => a.name === 'Entregue');
+  const isInDeliveredArea = vehicle.currentAreaId === deliveredArea?.id;
+  const isAdmin = currentUser?.role === 'admin';
+
+  // Mostrar botão de concluir se:
+  // 1. Está na área "Entregue" OU
+  // 2. É admin (pode concluir de qualquer área)
+  const canComplete = isInDeliveredArea || isAdmin;
+
+  const handleComplete = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Evita abrir o modal de detalhes
+    
+    if (!window.confirm(`Deseja marcar o veículo ${vehicle.model} (${vehicle.plate}) como concluído?\n\nO veículo será removido do Kanban e movido para "Concluídos".`)) {
+      return;
+    }
+
+    try {
+      await completeVehicle(vehicle.id, currentUser?.id);
+    } catch (error) {
+      console.error('Erro ao concluir veículo:', error);
+      alert('Erro ao concluir veículo. Tente novamente.');
+    }
   };
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`
-        bg-gray-800 border rounded-xl overflow-hidden cursor-pointer select-none
-        transition-all duration-150 hover:border-gray-500 hover:shadow-lg hover:-translate-y-0.5
-        ${isOverdue ? 'border-red-700/50' : isWarning ? 'border-yellow-700/50' : 'border-gray-700'}
-        ${isDragging ? 'shadow-2xl ring-2 ring-indigo-500' : ''}
-        active:scale-98
-      `}
+      className="bg-gray-800 border border-gray-700 rounded-xl p-3 hover:border-gray-600 transition-all cursor-pointer group"
       onClick={onClick}
-      {...attributes}
-      {...listeners}
     >
-      {/* Deadline indicator bar */}
-      <div className="h-1.5 w-full" style={{ backgroundColor: deadlineColor }} />
-
-      <div className="p-3.5">
-        {/* Model + plate */}
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <div>
-            <p className="text-white font-semibold text-sm leading-tight">{vehicle.model}</p>
-            <p className="text-indigo-400 font-mono text-xs font-bold mt-0.5">{vehicle.plate}</p>
-          </div>
-          {isOverdue && (
-            <div className="shrink-0">
-              <AlertTriangle size={14} className="text-red-400" />
-            </div>
-          )}
+      {/* Drag handle + Header */}
+      <div className="flex items-start gap-2 mb-2">
+        <button
+          {...attributes}
+          {...listeners}
+          className="text-gray-600 hover:text-gray-400 cursor-grab active:cursor-grabbing mt-0.5 shrink-0"
+          onClick={e => e.stopPropagation()}
+        >
+          <GripVertical size={14} />
+        </button>
+        
+        <div className="flex-1 min-w-0">
+          <h4 className="font-semibold text-white text-sm truncate">{vehicle.model}</h4>
+          <p className="text-indigo-400 font-mono text-xs font-bold">{vehicle.plate}</p>
         </div>
 
-        {/* Client name */}
-        {vehicle.clientName && (
-          <p className="text-gray-400 text-xs mb-2 truncate">
-            {vehicle.clientName}
-          </p>
+        {/* Badge de status */}
+        {isInDeliveredArea && (
+          <span className="flex items-center gap-1 px-2 py-0.5 bg-green-900/40 text-green-400 rounded-md text-xs font-medium border border-green-800">
+            <CheckCircle2 className="w-3 h-3" />
+          </span>
         )}
+      </div>
 
-        {/* Estimator */}
-        <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-2">
-          <User size={11} />
-          <span className="truncate">{estimatorLabel}</span>
+      {/* Info */}
+      <div className="space-y-1.5 mb-3 ml-5">
+        {vehicle.clientName && (
+          <div className="flex items-center gap-1.5 text-xs text-gray-400">
+            <User className="w-3 h-3 text-gray-500 shrink-0" />
+            <span className="truncate">{vehicle.clientName}</span>
+          </div>
+        )}
+        
+        <div className="flex items-center gap-1.5 text-xs text-gray-400">
+          <Calendar className="w-3 h-3 text-gray-500 shrink-0" />
+          <span>{formatDate(vehicle.entryDate)}</span>
         </div>
 
-        {/* Deadline */}
-        {vehicle.promisedDate && (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 text-xs" style={{ color: deadlineColor }}>
-              <Calendar size={11} />
-              <span>{formatDate(vehicle.promisedDate)}</span>
-            </div>
-            {(isOverdue || isWarning) && (
-              <span
-                className="text-xs font-bold px-1.5 py-0.5 rounded-md"
-                style={{
-                  backgroundColor: `${deadlineColor}20`,
-                  color: deadlineColor,
-                  border: `1px solid ${deadlineColor}40`
-                }}
-              >
-                {deadlineLabel}
-              </span>
+        {vehicle.deadline && (
+          <div className={`flex items-center gap-1.5 text-xs ${
+            deadlineStatus?.status === 'overdue' ? 'text-red-400 font-medium' :
+            deadlineStatus?.status === 'warning' ? 'text-yellow-400' :
+            'text-gray-400'
+          }`}>
+            <Clock className="w-3 h-3 shrink-0" />
+            <span>Prazo: {formatDate(vehicle.deadline)}</span>
+            {deadlineStatus?.status === 'overdue' && (
+              <AlertCircle className="w-3 h-3 text-red-400" />
             )}
           </div>
         )}
 
-        {/* Move button */}
-        {onMoveClick && (
-          <button
-            onClick={handleMoveClick}
-            className="mt-3 w-full flex items-center justify-center gap-2 bg-gray-700 hover:bg-indigo-600 transition-colors px-2.5 py-2 rounded-lg text-xs font-medium text-gray-200 hover:text-white group"
-            title="Mover para outro setor"
-          >
-            <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
-            <span>Mover</span>
-          </button>
+        {vehicle.estimatorId && (
+          <div className="flex items-center gap-1.5 text-xs text-gray-400">
+            <User className="w-3 h-3 text-gray-500 shrink-0" />
+            <span className="truncate">Orç: {estimatorName}</span>
+          </div>
+        )}
+
+        {/* Tempo na área */}
+        {vehicle.updatedAt && (
+          <div className="flex items-center gap-1.5 text-xs text-gray-500 pt-1 border-t border-gray-700/50">
+            <Clock className="w-3 h-3 shrink-0" />
+            <span>Nesta área: {formatDuration(vehicle.updatedAt, new Date().toISOString())}</span>
+          </div>
         )}
       </div>
+
+      {/* Actions */}
+      <div className="ml-5 flex gap-2">
+        {/* Botão Concluir - NOVO */}
+        {canComplete && (
+          <button
+            onClick={handleComplete}
+            className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all text-xs font-semibold hover:shadow-lg hover:shadow-green-600/30"
+          >
+            <Check className="w-3.5 h-3.5" />
+            Concluir
+          </button>
+        )}
+
+        {/* Botão Mover */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onMoveClick(vehicle);
+          }}
+          className={`${canComplete ? '' : 'flex-1'} flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-colors text-xs font-medium`}
+        >
+          <ArrowRight className="w-3.5 h-3.5" />
+          {canComplete ? '' : 'Mover'}
+        </button>
+      </div>
+
+      {/* Info extra para admin */}
+      {isAdmin && !isInDeliveredArea && (
+        <p className="text-xs text-yellow-400/50 mt-2 text-center ml-5">
+          Admin: pode concluir de qualquer área
+        </p>
+      )}
     </div>
   );
 }
 
-// Overlay version (shown while dragging)
+// Componente overlay (para arrastar)
 export function VehicleCardOverlay({ vehicle }: { vehicle: Vehicle }) {
-  const deadlineStatus = getDeadlineStatus(vehicle);
-  const deadlineColor = getDeadlineColor(deadlineStatus);
+  const { areas } = useStore();
+  const area = areas.find(a => a.id === vehicle.currentAreaId);
 
   return (
-    <div className="bg-gray-800 border border-indigo-500 rounded-xl overflow-hidden shadow-2xl ring-2 ring-indigo-500/50 rotate-2 scale-105">
-      <div className="h-1.5 w-full" style={{ backgroundColor: deadlineColor }} />
-      <div className="p-3.5">
-        <p className="text-white font-semibold text-sm">{vehicle.model}</p>
-        <p className="text-indigo-400 font-mono text-xs font-bold mt-0.5">{vehicle.plate}</p>
+    <div
+      className="bg-gray-800 border-2 border-indigo-500 rounded-xl p-3 w-72 shadow-2xl rotate-3 opacity-90"
+      style={{ borderLeftColor: area?.color }}
+    >
+      <div className="flex items-start gap-2">
+        <GripVertical size={14} className="text-gray-600 mt-0.5 shrink-0" />
+        <div className="flex-1">
+          <h4 className="font-semibold text-white text-sm">{vehicle.model}</h4>
+          <p className="text-indigo-400 font-mono text-xs font-bold">{vehicle.plate}</p>
+        </div>
       </div>
     </div>
   );

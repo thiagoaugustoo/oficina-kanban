@@ -91,10 +91,30 @@ interface AppState {
   filterAreaId: string;
   setFilterAreaId: (id: string) => void;
 
+  // Filtros de status
+  showCompletedVehicles: boolean;
+  setShowCompletedVehicles: (show: boolean) => void;
+  
+  // Função auxiliar para obter veículos ativos
+  getActiveVehicles: () => Vehicle[];
+  getCompletedVehicles: () => Vehicle[];
+
   // UI
   activeView: 'kanban' | 'dashboard' | 'completed' | 'employees' | 'areas' | 'users' | 'settings';
   setActiveView: (view: AppState['activeView']) => void;
 }
+
+  function isCompletedAreaName(name?: string) {
+    if (!name) return false;
+
+    const normalized = name.trim().toLowerCase();
+
+    return (
+      normalized === 'pronto' ||
+      normalized === 'pronto para entrega' ||
+      normalized === 'entregue'
+    );
+  }
 
 export const useStore = create<AppState>((set, get) => {
   const initialUsers = loadState<User[]>('ws_users', DEFAULT_USERS);
@@ -104,6 +124,22 @@ export const useStore = create<AppState>((set, get) => {
   const initialHistory = loadState<VehicleHistory[]>('ws_history', []);
 
   return {
+    showCompletedVehicles: false,
+    
+    setShowCompletedVehicles: (show) => set({ showCompletedVehicles: show }),
+    
+    getActiveVehicles: () => {
+      return get().vehicles.filter(v => v.status === 'active');
+    },
+    
+    getCompletedVehicles: () => {
+      return get().vehicles.filter(v => v.status === 'completed')
+        .sort((a, b) => {
+          const dateA = new Date(b.completedAt || b.updatedAt).getTime();
+          const dateB = new Date(a.completedAt || a.updatedAt).getTime();
+          return dateA - dateB;
+        });
+    },
     currentUser: null,
     searchQuery: '',
     filterEmployeeId: '',
@@ -492,26 +528,33 @@ reorderAreas: async (areas) => {
 
     addVehicle: (vehicleData) => {
       const now = new Date().toISOString();
+
+      const selectedArea = get().areas.find(a => a.id === vehicleData.currentAreaId);
+      const shouldComplete = isCompletedAreaName(selectedArea?.name);
+
       const newVehicle: Vehicle = {
         ...vehicleData,
         id: uuidv4(),
-        status: 'active',
+        status: shouldComplete ? 'completed' : 'active',
+        completedAt: shouldComplete ? now : undefined,
+        completedByUserId: shouldComplete ? get().currentUser?.id : undefined,
         createdAt: now,
         updatedAt: now,
       };
+
       const vehicles = [...get().vehicles, newVehicle];
       set({ vehicles });
       saveState('ws_vehicles', vehicles);
 
-      // Add history
       const histEntry: VehicleHistory = {
         id: uuidv4(),
         vehicleId: newVehicle.id,
-        type: 'created',
+        type: shouldComplete ? 'completed' : 'created',
         toAreaId: vehicleData.currentAreaId,
         userId: vehicleData.createdByUserId,
         timestamp: now,
       };
+
       const history = [...get().history, histEntry];
       set({ history });
       saveState('ws_history', history);
@@ -546,52 +589,53 @@ reorderAreas: async (areas) => {
     },
 
     moveVehicle: (vehicleId, toAreaId, employeeId) => {
-      const now = new Date().toISOString();
-      const vehicle = get().vehicles.find(v => v.id === vehicleId);
-      if (!vehicle) return;
+  const now = new Date().toISOString();
 
-      const readyArea = get().areas.find(a => a.name === 'Pronto para Entrega');
-      const deliveredArea = get().areas.find(a => a.name === 'Entregue');
-      
-      // Se moveu para "Pronto para Entrega", automaticamente move para "Entregue"
-      const finalAreaId = (readyArea && toAreaId === readyArea.id) ? (deliveredArea?.id || toAreaId) : toAreaId;
-      const isCompleting = deliveredArea && finalAreaId === deliveredArea.id;
+  const vehicle = get().vehicles.find(v => v.id === vehicleId);
+  if (!vehicle) return;
 
-      const vehicles = get().vehicles.map(v =>
-        v.id === vehicleId
-          ? {
-              ...v,
-              currentAreaId: finalAreaId,
-              updatedAt: now,
-              status: isCompleting ? ('completed' as VehicleStatus) : v.status,
-              completedAt: isCompleting ? now : v.completedAt,
-              completedByUserId: isCompleting ? (get().currentUser?.id || '') : v.completedByUserId,
-            }
-          : v
-      );
-      set({ vehicles });
-      saveState('ws_vehicles', vehicles);
+  const targetArea = get().areas.find(a => a.id === toAreaId);
+  const isCompleting = isCompletedAreaName(targetArea?.name);
 
-      const histEntry: VehicleHistory = {
-        id: uuidv4(),
-        vehicleId,
-        type: isCompleting ? 'completed' : 'moved',
-        fromAreaId: vehicle.currentAreaId,
-        toAreaId: finalAreaId,
-        employeeId,
-        userId: get().currentUser?.id || '',
-        timestamp: now,
-      };
-      const history = [...get().history, histEntry];
-      set({ history });
-      saveState('ws_history', history);
+  const vehicles = get().vehicles.map(v =>
+    v.id === vehicleId
+      ? {
+          ...v,
+          currentAreaId: toAreaId,
+          updatedAt: now,
+          status: isCompleting ? ('completed' as VehicleStatus) : v.status,
+          completedAt: isCompleting ? now : v.completedAt,
+          completedByUserId: isCompleting ? (get().currentUser?.id || '') : v.completedByUserId,
+        }
+      : v
+  );
 
-      const updatedVehicle = vehicles.find(v => v.id === vehicleId);
-      if (updatedVehicle) {
-        void upsertRemote('vehicles', [updatedVehicle]);
-      }
-      void upsertRemote('history', [histEntry]);
-    },
+  set({ vehicles });
+  saveState('ws_vehicles', vehicles);
+
+  const histEntry: VehicleHistory = {
+    id: uuidv4(),
+    vehicleId,
+    type: isCompleting ? 'completed' : 'moved',
+    fromAreaId: vehicle.currentAreaId,
+    toAreaId,
+    employeeId,
+    userId: get().currentUser?.id || '',
+    timestamp: now,
+  };
+
+  const history = [...get().history, histEntry];
+  set({ history });
+  saveState('ws_history', history);
+
+  const updatedVehicle = vehicles.find(v => v.id === vehicleId);
+
+  if (updatedVehicle) {
+    void upsertRemote('vehicles', [updatedVehicle]);
+  }
+
+  void upsertRemote('history', [histEntry]);
+},
 
     completeVehicle: (vehicleId, employeeId) => {
       const deliveredArea = get().areas.find(a => a.name === 'Entregue');

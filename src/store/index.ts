@@ -753,7 +753,7 @@ async function fetchUserProfileByEmail(email: string) {
 }
 
 async function refreshRemoteState() {
-  if (!isSupabaseConfigured || isUpdating) return;
+  if (!isSupabaseConfigured ) return;
 
   const [users, employees, areas, vehicles, history] = await Promise.all([
     fetchRemoteTable<User>('users'),

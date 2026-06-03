@@ -395,14 +395,17 @@ addArea: async (areaData) => {
       id: uuidv4(), 
       createdAt: new Date().toISOString() 
     };
-    const areas = [...get().areas, newArea].sort((a, b) => a.displayOrder - b.displayOrder);
-    set({ areas });
-    saveState('ws_areas', areas);
     
+    // IMPORTANTE: Aguarda o upsert ANTES de atualizar o estado local
     const result = await upsertRemote('areas', [newArea]);
     if (!result.success) {
       throw new Error(result.error || 'Erro ao sincronizar com Supabase');
     }
+    
+    // Só atualiza o estado local após confirmar que salvou no Supabase
+    const areas = [...get().areas, newArea].sort((a, b) => a.displayOrder - b.displayOrder);
+    set({ areas });
+    saveState('ws_areas', areas);
     
     return { success: true, message: 'Área criada com sucesso' };
   } catch (error) {
@@ -659,17 +662,50 @@ async function fetchRemoteTable<T>(table: string) {
   return data;
 }
 
+let isUpdating = false;
+
 async function upsertRemote<T>(table: string, rows: T[]): Promise<{ success: boolean; error?: string }> {
   if (!isSupabaseConfigured || rows.length === 0) {
     return { success: !isSupabaseConfigured, error: !isSupabaseConfigured ? undefined : 'Supabase não configurado' };
   }
   
   try {
-    const { error } = await supabase.from<T>(table).upsert(rows, { onConflict: 'id' });
+    isUpdating = true; // Marca que está atualizando
+    
+    const { error } = await supabase.from(table).upsert(rows, { onConflict: 'id' });
+    if (error) {
+      console.error(`Supabase upsert failed for ${table}:`, error.message);
+      isUpdating = false;
+      return { success: false, error: error.message };
+    }
+    
+    // Aguarda um pouco antes de permitir sync novamente
+    setTimeout(() => { isUpdating = false; }, 500);
+    
+    return { success: true };
+  } catch (err) {
+    isUpdating = false;
+    const message = err instanceof Error ? err.message : 'Erro desconhecido';
+    console.error(`Error upserting to ${table}:`, message);
+    return { success: false, error: message };
+  }
+}
+
+async function upsertRemote<T>(table: string, rows: T[]): Promise<{ success: boolean; error?: string }> {
+  if (!isSupabaseConfigured || rows.length === 0) {
+    return { success: !isSupabaseConfigured, error: !isSupabaseConfigured ? undefined : 'Supabase não configurado' };
+  }
+  
+  try {
+    const { error } = await supabase.from(table).upsert(rows, { onConflict: 'id' });
     if (error) {
       console.error(`Supabase upsert failed for ${table}:`, error.message);
       return { success: false, error: error.message };
     }
+    
+    // Aguarda um pouco para garantir que o Supabase processou
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     return { success: true };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Erro desconhecido';
@@ -717,7 +753,7 @@ async function fetchUserProfileByEmail(email: string) {
 }
 
 async function refreshRemoteState() {
-  if (!isSupabaseConfigured) return;
+  if (!isSupabaseConfigured || isUpdating) return;
 
   const [users, employees, areas, vehicles, history] = await Promise.all([
     fetchRemoteTable<User>('users'),
@@ -727,11 +763,28 @@ async function refreshRemoteState() {
     fetchRemoteTable<VehicleHistory>('history'),
   ]);
 
-  if (users) useStore.setState({ users });
-  if (employees) useStore.setState({ employees });
-  if (areas) useStore.setState({ areas });
-  if (vehicles) useStore.setState({ vehicles });
-  if (history) useStore.setState({ history });
+  const currentState = useStore.getState();
+
+  if (users && JSON.stringify(users) !== JSON.stringify(currentState.users)) {
+    useStore.setState({ users });
+    saveState('ws_users', users);
+  }
+  if (employees && JSON.stringify(employees) !== JSON.stringify(currentState.employees)) {
+    useStore.setState({ employees });
+    saveState('ws_employees', employees);
+  }
+  if (areas && JSON.stringify(areas) !== JSON.stringify(currentState.areas)) {
+    useStore.setState({ areas });
+    saveState('ws_areas', areas);
+  }
+  if (vehicles && JSON.stringify(vehicles) !== JSON.stringify(currentState.vehicles)) {
+    useStore.setState({ vehicles });
+    saveState('ws_vehicles', vehicles);
+  }
+  if (history && JSON.stringify(history) !== JSON.stringify(currentState.history)) {
+    useStore.setState({ history });
+    saveState('ws_history', history);
+  }
 }
 
 function subscribeToRemoteChanges() {

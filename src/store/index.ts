@@ -310,23 +310,62 @@ if (profile?.active) {
     },
 
     addUser: async (userData) => {
-      try {
-        const newUser: User = { ...userData, id: uuidv4(), createdAt: new Date().toISOString() };
-        const users = [...get().users, newUser];
-        set({ users });
-        saveState('ws_users', users);
-        
-        const result = await upsertRemote('users', [newUser]);
-        if (!result.success) {
-          throw new Error(result.error || 'Erro ao sincronizar com Supabase');
-        }
-        
-        return { success: true, message: 'Usuário criado com sucesso' };
-      } catch (error) {
-        console.error('Erro ao adicionar usuário:', error);
-        return { success: false, message: error instanceof Error ? error.message : 'Erro ao adicionar usuário' };
+  try {
+
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: userData.email,
+          password: userData.password,
+          name: userData.name,
+          role: userData.role,
+        }),
       }
-    },
+    );
+
+    const resultFunction = await response.json();
+
+    if (!response.ok) {
+      throw new Error(resultFunction.error);
+    }
+
+    const newUser: User = {
+      ...userData,
+      id: resultFunction.user.id,
+      createdAt: new Date().toISOString(),
+    };
+
+    const result = await upsertRemote('users', [newUser]);
+
+    if (!result.success) {
+      throw new Error(result.error);
+    }
+
+    const users = [...get().users, newUser];
+    set({ users });
+    saveState('ws_users', users);
+
+    return {
+      success: true,
+      message: 'Usuário criado com sucesso'
+    };
+
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : 'Erro ao criar usuário'
+    };
+  }
+},
 
     updateUser: async (id, data) => {
       try {

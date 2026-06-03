@@ -587,44 +587,45 @@ async function fetchRemoteTable<T>(table: string) {
   return data;
 }
 
-async function upsertRemote<T>(table: string, rows: T[]) {
-  console.log('========== UPSERT ==========');
-  console.log('TABLE:', table);
-  console.log('ROWS:', rows);
-
-  const { data, error } = await supabase
-    .from(table)
-    .upsert(rows, { onConflict: 'id' })
-    .select();
-
-  console.log('DATA:', data);
-  console.log('ERROR:', error);
-
-  return {
-    success: !error,
-    error: error?.message,
-  };
+async function upsertRemote<T>(table: string, rows: T[]): Promise<{ success: boolean; error?: string }> {
+  if (!isSupabaseConfigured || rows.length === 0) {
+    return { success: !isSupabaseConfigured, error: !isSupabaseConfigured ? undefined : 'Supabase não configurado' };
+  }
+  
+  try {
+    const { error } = await supabase.from<T>(table).upsert(rows, { onConflict: 'id' });
+    if (error) {
+      console.error(`Supabase upsert failed for ${table}:`, error.message);
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Erro desconhecido';
+    console.error(`Error upserting to ${table}:`, message);
+    return { success: false, error: message };
+  }
 }
 
-async function deleteRemote(table: string, id: string) {
-  console.log('========== DELETE ==========');
-  console.log('TABLE:', table);
-  console.log('ID:', id);
-
-  const { data, error } = await supabase
-    .from(table)
-    .delete()
-    .eq('id', id)
-    .select();
-
-  console.log('DATA:', data);
-  console.log('ERROR:', error);
-
-  return {
-    success: !error,
-    error: error?.message,
-  };
+async function deleteRemote(table: string, id: string): Promise<{ success: boolean; error?: string }> {
+  if (!isSupabaseConfigured) {
+    return { success: true };
+  }
+  
+  try {
+    const { error } = await supabase.from(table).delete().eq('id', id);
+    if (error) {
+      console.error(`Supabase delete failed for ${table}:`, error.message);
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Erro desconhecido';
+    console.error(`Error deleting from ${table}:`, message);
+    return { success: false, error: message };
+  }
 }
+
+
 
 async function fetchUserProfileByEmail(email: string) {
   if (!isSupabaseConfigured) return null;

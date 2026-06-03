@@ -66,10 +66,10 @@ interface AppState {
 
   // Areas
   areas: Area[];
-  addArea: (area: Omit<Area, 'id' | 'createdAt'>) => void;
-  updateArea: (id: string, data: Partial<Area>) => void;
-  deleteArea: (id: string) => void;
-  reorderAreas: (areas: Area[]) => void;
+  addArea: (area: Omit<Area, 'id' | 'createdAt'>) => Promise<{ success: boolean; message: string }>;
+  updateArea: (id: string, data: Partial<Area>) => Promise<{ success: boolean; message: string }>;
+  deleteArea: (id: string) => Promise<{ success: boolean; message: string }>;
+  reorderAreas: (areas: Area[]) => Promise<{ success: boolean; message: string }>;
 
   // Vehicles
   vehicles: Vehicle[];
@@ -387,33 +387,105 @@ if (profile?.active) {
       }
     },
 
-    addArea: (areaData) => {
-      const newArea: Area = { ...areaData, id: uuidv4(), createdAt: new Date().toISOString() };
-      const areas = [...get().areas, newArea].sort((a, b) => a.displayOrder - b.displayOrder);
-      set({ areas });
-      saveState('ws_areas', areas);
-      void upsertRemote('areas', [newArea]);
-    },
+    // Areas
+addArea: async (areaData) => {
+  try {
+    const newArea: Area = { 
+      ...areaData, 
+      id: uuidv4(), 
+      createdAt: new Date().toISOString() 
+    };
+    const areas = [...get().areas, newArea].sort((a, b) => a.displayOrder - b.displayOrder);
+    set({ areas });
+    saveState('ws_areas', areas);
+    
+    const result = await upsertRemote('areas', [newArea]);
+    if (!result.success) {
+      throw new Error(result.error || 'Erro ao sincronizar com Supabase');
+    }
+    
+    return { success: true, message: 'Área criada com sucesso' };
+  } catch (error) {
+    console.error('Erro ao adicionar área:', error);
+    return { 
+      success: false, 
+      message: error instanceof Error ? error.message : 'Erro ao adicionar área' 
+    };
+  }
+},
 
-    updateArea: (id, data) => {
+updateArea: async (id, data) => {
+  try {
     const areas = get().areas.map(a => a.id === id ? { ...a, ...data } : a);
-      set({ areas });
-      saveState('ws_areas', areas);
-      void upsertRemote('areas', areas.filter(a => a.id === id));
-    },
+    set({ areas });
+    saveState('ws_areas', areas);
+    
+    const result = await upsertRemote('areas', areas.filter(a => a.id === id));
+    if (!result.success) {
+      throw new Error(result.error || 'Erro ao sincronizar com Supabase');
+    }
+    
+    return { success: true, message: 'Área atualizada com sucesso' };
+  } catch (error) {
+    console.error('Erro ao atualizar área:', error);
+    return { 
+      success: false, 
+      message: error instanceof Error ? error.message : 'Erro ao atualizar área' 
+    };
+  }
+},
 
-    deleteArea: (id) => {
-      const areas = get().areas.filter(a => a.id !== id);
-      set({ areas });
-      saveState('ws_areas', areas);
-      void deleteRemote('areas', id);
-    },
+deleteArea: async (id) => {
+  try {
+    // Verificar se existem funcionários ou veículos vinculados a esta área
+    const hasEmployees = get().employees.some(e => e.areaId === id);
+    const hasVehicles = get().vehicles.some(v => v.currentAreaId === id);
+    
+    if (hasEmployees || hasVehicles) {
+      return { 
+        success: false, 
+        message: 'Não é possível excluir esta área pois existem funcionários ou veículos vinculados a ela.' 
+      };
+    }
+    
+    const areas = get().areas.filter(a => a.id !== id);
+    set({ areas });
+    saveState('ws_areas', areas);
+    
+    const result = await deleteRemote('areas', id);
+    if (!result.success) {
+      throw new Error(result.error || 'Erro ao sincronizar com Supabase');
+    }
+    
+    return { success: true, message: 'Área deletada com sucesso' };
+  } catch (error) {
+    console.error('Erro ao deletar área:', error);
+    return { 
+      success: false, 
+      message: error instanceof Error ? error.message : 'Erro ao deletar área' 
+    };
+  }
+},
 
-    reorderAreas: (areas) => {
-      set({ areas });
-      saveState('ws_areas', areas);
-      void upsertRemote('areas', areas);
-    },
+reorderAreas: async (areas) => {
+  try {
+    set({ areas });
+    saveState('ws_areas', areas);
+    
+    const result = await upsertRemote('areas', areas);
+    if (!result.success) {
+      throw new Error(result.error || 'Erro ao sincronizar com Supabase');
+    }
+    
+    return { success: true, message: 'Áreas reordenadas com sucesso' };
+  } catch (error) {
+    console.error('Erro ao reordenar áreas:', error);
+    return { 
+      success: false, 
+      message: error instanceof Error ? error.message : 'Erro ao reordenar áreas' 
+    };
+  }
+},
 
     addVehicle: (vehicleData) => {
       const now = new Date().toISOString();

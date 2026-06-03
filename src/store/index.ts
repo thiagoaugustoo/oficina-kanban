@@ -670,33 +670,6 @@ async function upsertRemote<T>(table: string, rows: T[]): Promise<{ success: boo
   }
   
   try {
-    isUpdating = true; // Marca que está atualizando
-    
-    const { error } = await supabase.from(table).upsert(rows, { onConflict: 'id' });
-    if (error) {
-      console.error(`Supabase upsert failed for ${table}:`, error.message);
-      isUpdating = false;
-      return { success: false, error: error.message };
-    }
-    
-    // Aguarda um pouco antes de permitir sync novamente
-    setTimeout(() => { isUpdating = false; }, 500);
-    
-    return { success: true };
-  } catch (err) {
-    isUpdating = false;
-    const message = err instanceof Error ? err.message : 'Erro desconhecido';
-    console.error(`Error upserting to ${table}:`, message);
-    return { success: false, error: message };
-  }
-}
-
-async function upsertRemote<T>(table: string, rows: T[]): Promise<{ success: boolean; error?: string }> {
-  if (!isSupabaseConfigured || rows.length === 0) {
-    return { success: !isSupabaseConfigured, error: !isSupabaseConfigured ? undefined : 'Supabase não configurado' };
-  }
-  
-  try {
     const { error } = await supabase.from(table).upsert(rows, { onConflict: 'id' });
     if (error) {
       console.error(`Supabase upsert failed for ${table}:`, error.message);
